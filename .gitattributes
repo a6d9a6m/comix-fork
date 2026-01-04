@@ -1,0 +1,2 @@
+sdcard-rv.img.xz filter=lfs diff=lfs merge=lfs -text
+sdcard-la.img.xz filter=lfs diff=lfs merge=lfs -text
