@@ -118,7 +118,10 @@ impl Drop for InterruptGuard {
 
 #[cfg(test)]
 mod tests {
-    use crate::{early_test, kassert, test_case};
+    #[cfg(target_arch = "riscv64")]
+    use riscv::interrupt::Interrupt;
+
+    use crate::{early_test, kassert, println, test_case};
 
     test_case!(trivial_assertion, {
         kassert!(0 != 1);

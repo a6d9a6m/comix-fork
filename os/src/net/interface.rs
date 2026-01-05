@@ -1,5 +1,6 @@
 use crate::device::DeviceType;
 use crate::device::net::net_device::NetDevice;
+use crate::println;
 use crate::sync::SpinLock;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
@@ -174,13 +175,13 @@ impl NetworkInterface {
     /// 启用中断
     pub fn enable_interrupt(&self) {
         *self.interrupt_enabled.lock() = true;
-        crate::pr_debug!("Interrupt enabled for interface {}", self.name());
+        println!("Interrupt enabled for interface {}", self.name());
     }
 
     /// 禁用中断
     pub fn disable_interrupt(&self) {
         *self.interrupt_enabled.lock() = false;
-        crate::pr_debug!("Interrupt disabled for interface {}", self.name());
+        println!("Interrupt disabled for interface {}", self.name());
     }
 
     /// 检查中断是否启用
@@ -331,13 +332,13 @@ impl crate::device::Driver for NetworkInterface {
 
         // 记录中断信息
         if let Some(irq_num) = irq {
-            crate::pr_debug!(
+            println!(
                 "Network interface {} received interrupt on IRQ {}",
                 self.name(),
                 irq_num
             );
         } else {
-            crate::pr_debug!(
+            println!(
                 "Network interface {} received interrupt without IRQ number",
                 self.name()
             );
@@ -350,7 +351,7 @@ impl crate::device::Driver for NetworkInterface {
         let mut buffer = [0u8; 2048];
         match self.device.receive(&mut buffer) {
             Ok(size) if size > 0 => {
-                crate::pr_debug!(
+                println!(
                     "Received {} bytes of data on interface {}",
                     size,
                     self.name()
@@ -360,7 +361,7 @@ impl crate::device::Driver for NetworkInterface {
                 true
             }
             Err(e) => {
-                crate::pr_debug!("Error receiving data: {:?}", e);
+                println!("Error receiving data: {:?}", e);
                 true // 仍然返回true表示我们处理了这个中断
             }
             _ => {

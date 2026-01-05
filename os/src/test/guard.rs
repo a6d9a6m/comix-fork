@@ -15,8 +15,7 @@ pub struct TestEnvGuard {
 impl TestEnvGuard {
     pub fn enter(env: TestEnvironment) -> Self {
         unsafe fn read_flags() -> usize {
-            // 在 `unsafe fn` 内调用 unsafe 函数也需要显式 unsafe 块
-            unsafe { crate::arch::intr::read_and_disable_interrupts() }
+            crate::arch::intr::read_and_disable_interrupts()
         }
 
         // 在设置新环境前，先保存当前的状态
