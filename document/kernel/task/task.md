@@ -1,107 +1,92 @@
-# 任务结构及生命周期管理
+# 任务结构与生命周期
 
-本文档详细说明了 `Task` 的核心数据结构、生命周期状态转换以及暴露给其他内核模块的接口。
+本页描述 `Task` 的核心字段、进程/线程关系与生命周期。内容以当前实现为准。
 
-## 1. 核心数据结构：`Task`
+## 1. 任务模型
 
-操作系统的核心任务表示是 `Task` 结构体，它统一了进程和线程的概念。所有与执行流相关的信息都封装在其中。
+- `Task` 统一表示进程与线程。
+- 进程满足 `pid == tid`，线程满足 `pid != tid`。
+- 线程共享资源（文件、信号、地址空间等）通过 `Arc` 持有。
+- 每个任务都有独立内核栈与寄存器上下文。
 
-**源码链接**: [`os/src/kernel/task/task_struct.rs`](/os/src/kernel/task/task_struct.rs)
+源码位置: `os/src/kernel/task/task_struct.rs`
 
-`Task` 结构体的主要字段可以分为以下几类：
+## 2. 关键字段分组
 
-### 1.1 身份与亲属关系
+### 2.1 身份与层级
 
-这些字段用于唯一标识一个任务并建立任务间的层级关系。
+- `tid`, `pid`, `ppid`, `pgid`
+- `children`: 子任务列表
+- `wait_child`: 等待子任务退出的等待队列
 
-- `tid: u32`: **任务ID (Task ID)**。由 `TidAllocator` 分配的全系统唯一标识符。
-- `pid: u32`: **进程ID (Process ID)**。对于线程，它与创建它的主任务 `pid` 相同。对于一个进程的第一个任务，`pid` 等于其 `tid`。
-- `ppid: u32`: **父任务ID (Parent Process ID)**。
+### 2.2 调度与执行
 
-### 1.2 调度与执行上下文
+- `context`: 任务切换所需最小上下文
+- `trap_frame_ptr`: TrapFrame 指针
+- `state`: `TaskState` (Running/Stopped/Interruptible/Uninterruptible/Zombie)
+- `on_cpu`: 当前运行 CPU，`cpu_affinity` 亲和性掩码
 
-这些字段由调度器和中断处理机制在任务切换和执行时使用。
+### 2.3 地址空间与栈
 
-- `context: Context`: **任务上下文**。保存了任务切换时需要恢复的最小寄存器集合（主要是 `ra` 和 `sp`），用于非中断驱动的上下文切换。
-- `trap_frame_ptr: AtomicPtr<TrapFrame>`: **中断帧指针**。当任务从用户态或内核态陷入(trap)时，CPU的完整上下文（所有通用寄存器、`sepc`、`sstatus`等）被保存在其内核栈上，此指针指向该 `TrapFrame` 的位置。当中断返回时，`__restore` 会用它来恢复现场。
-- `state: TaskState`: **任务状态**。定义在 [`os/src/kernel/task/task_state.rs`](/os/src/kernel/task/task_state.rs)，是任务生命周期管理的核心。
-- `preempt_count: usize`: **抢占计数器**。当大于0时，禁止内核抢占，用于保护临界区。
+- `memory_space: Option<MemorySpace>`
+  - 内核线程为 `None`
+  - 用户任务持有地址空间
+- `kstack_base`: 内核栈基址
 
-### 1.3 资源管理
+### 2.4 资源与命名空间
 
-这些字段管理任务执行所必需的系统资源。
+- `fd_table`: 文件描述符表
+- `fs`: 文件系统相关信息 (cwd/root)
+- `uts_namespace`, `rlimit`, `credential`, `umask`
 
-- `kstack_base: usize`: **内核栈顶地址**。每个任务都有自己独立的内核栈。
-- `kstack_tracker` & `trap_frame_tracker`: 用于跟踪内核栈和中断帧所占用的物理页帧，以便在任务销毁时正确回收。
-- `memory_space: Option<Arc<MemorySpace>>`: **内存地址空间**。对于用户任务，它包含了页表、内存映射区域等信息。对于内核线程，此字段为 `None`。
+### 2.5 信号与退出
 
-### 1.4 生命周期与退出状态
+- `blocked`, `pending`, `shared_pending`, `signal_handlers`, `signal_stack`
+- `exit_code`, `exit_signal`
 
-这些字段用于处理任务的终止和父任务的等待。
+## 3. 任务创建
 
-- `exit_code: Option<i32>`: **退出码**。用于进程，在调用 `exit` 系统调用时设置。
-- `return_value: Option<usize>`: **返回值**。用于线程，在线程函数返回时设置。
+- 内核线程: `Task::ktask_create()`
+- 用户任务: `Task::utask_create()`
 
-## 2. 任务的生命周期与状态转换
+创建流程通常包括:
+1. 分配内核栈与 TrapFrame
+2. 初始化 `Context`，`ra` 指向 `forkret`
+3. 将任务加入调度器运行队列
 
-任务的生命周期由 `TaskState` 枚举驱动，并通过一系列接口函数进行管理。
+相关入口:
+- `os/src/kernel/task/ktask.rs`
+- `os/src/kernel/task/task_manager.rs`
 
-### 2.1 任务的创建
+## 4. 执行与切换
 
-#### 内核线程
+- 任务首次被调度会进入 `forkret`，由 `restore()` 恢复 TrapFrame。
+- 上下文切换由 `schedule()` 驱动，底层使用 `__switch`。
 
-- **接口**: `kthread_spawn(name: &'static str, entry: fn(usize) -> !, arg: usize)`
-- **源码**: [`os/src/kernel/task/ktask.rs`](/os/src/kernel/task/ktask.rs)
-- **机制**:
-    1. 调用 `TASK_MANAGER` 分配 `tid`。
-    2. 分配内核栈和中断帧所需的物理内存。
-    3. 调用 `Task::ktask_create` 创建 `Task` 实例。此函数会：
-        - 初始化 `Context`，将 `ra` 指向 `forkret`，`sp` 指向内核栈顶。
-        - 初始化位于内核栈上的 `TrapFrame`，将 `sepc` 设置为线程入口点 `entry`，`sstatus` 设置为S模式，并设置好内核栈指针 `x2_sp`。
-    4. 将新创建的任务包装在 `Arc<SpinLock<Task>>` (即 `SharedTask`) 中，并交给调度器 `SCHEDULER` 的运行队列。
+相关代码:
+- `os/src/kernel/task/mod.rs` (`forkret`)
+- `os/src/arch/riscv/kernel/switch.S`
 
-#### 用户任务 (待实现)
+## 5. execve 与地址空间替换
 
-- **接口**: (例如 `utask_create` 或 `sys_clone`)
-- **机制**: 与内核线程类似，但需要额外创建和关联一个 `MemorySpace`（用户地址空间），并初始化 `TrapFrame` 以便从S模式返回到U模式执行。
+`Task::execve()` 会:
+1. 切换到新的 `MemorySpace`
+2. 复制/关闭 `FD_CLOEXEC` 文件
+3. 构造用户栈 (argv/envp/auxv)
+4. 更新 TrapFrame 并写入用户入口地址
 
-### 2.2 任务的执行与切换
+相关代码:
+- `os/src/kernel/syscall/task.rs`
+- `os/src/kernel/task/exec_loader.rs`
+- `os/src/kernel/task/task_struct.rs`
 
-- **`forkret`**:
-    - **源码**: [`os/src/kernel/task/mod.rs`](/os/src/kernel/task/mod.rs)
-    - **机制**: 所有新创建的任务在第一次被调度器选中时，都会从 `__switch` 跳转到 `forkret` 函数。`forkret` 的唯一职责是从当前任务的 `trap_frame_ptr` 中加载中断帧地址，并调用 `restore` 汇编例程。`restore` 会将中断帧中的寄存器值恢复到CPU中，最后通过 `sret` 指令跳转到任务的真正入口点（`sepc`），任务从而开始执行。
+## 6. 退出与回收
 
-### 2.3 任务的睡眠与唤醒
+- `terminate_task()` 处理致命异常与线程退出。
+- 进程退出由 `exit_process()` 统一处理，回收资源并通知父任务。
+- `TaskState` 变为 `Zombie` 后由父进程 `wait4` 回收。
 
-- **接口**:
-    - `sleep_task(task: SharedTask, receive_signal: bool)`
-    - `wake_up(task: SharedTask)`
-- **源码**: [`os/src/kernel/scheduler/rr_scheduler.rs`](/os/src/kernel/scheduler/rr_scheduler.rs) (作为 `Scheduler` trait 的一部分)
-- **机制**:
-    - **睡眠**: 当任务需要等待资源时（例如等待一个 `SleepLock`），它会调用 `sleep_task`。调度器会将该任务的 `state` 设置为 `Interruptible` 或 `Uninterruptible`，并将其从运行队列中移除。随后调度器会选择下一个任务运行。
-    - **唤醒**: 当资源可用时，持有该资源的模块会调用 `wake_up`。调度器会将任务的 `state` 恢复为 `Running`，并将其重新加入运行队列。
+相关代码:
+- `os/src/kernel/task/process.rs`
+- `os/src/kernel/task/task_manager.rs`
 
-### 2.4 任务的终止
-
-- **接口**: `terminate_task(return_value: usize) -> !`
-- **源码**: [`os/src/kernel/task/mod.rs`](/os/src/kernel/task/mod.rs)
-- **机制**:
-    1. 当一个内核线程的入口函数返回时，`TrapFrame` 中预设的返回地址 `ra` 会指向 `terminate_task`。
-    2. `terminate_task` 获取当前任务，将其 `state` 设置为 `Stopped`，并保存返回值 `return_value`。
-    3. 它主动调用 `schedule()` 让出CPU，由于任务状态已是 `Stopped`，它将不会再被调度器放回运行队列。
-    4. 任务占用的资源（如内核栈）的最终回收依赖于 `Arc` 的引用计数。当所有对该任务的 `SharedTask` 引用都消失后，`Task` 的 `Drop` 实现会被调用，从而释放内存。
-
-## 3. 暴露接口
-
-- **`os/src/kernel/task/mod.rs`**:
-    - `SharedTask`: `Arc<SpinLock<TaskStruct>>` 的类型别名，是任务在内核中传递的标准形式。
-    - `into_shared(task: TaskStruct) -> SharedTask`: 将一个 `Task` 结构包装为 `SharedTask`。
-- **`os/src/kernel/task/ktask.rs`**:
-    - `kthread_spawn(...)`: 创建内核线程的顶层API。
-- **`os/src/kernel/mod.rs` (通过 `scheduler` 模块暴露)**:
-    - `yield_task()`: 主动让出CPU，触发一次调度。
-    - `sleep_task(...)`: 使指定任务进入睡眠状态。
-    - `wake_up(...)`: 唤醒指定任务。
-    - `exit_task(...)`: 终止指定任务并设置退出码。
-
-这些接口共同构成了任务管理的核心功能，为上层模块（如锁、IPC、系统调用）提供了构建并发服务的基础。
