@@ -59,7 +59,11 @@ pub fn early_init() {
                 CLOCK_FREQ = freq;
             }
         } else {
-            pr_warn!("[Device] No timebase-frequency in DTB, keeping default");
+            let default_freq = unsafe { CLOCK_FREQ };
+            pr_info!(
+                "[Device] No timebase-frequency in DTB, using default {} Hz",
+                default_freq
+            );
         }
     } else {
         pr_warn!("[Device] No CPU found in device tree");
