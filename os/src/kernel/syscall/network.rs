@@ -811,11 +811,15 @@ pub fn send(sockfd: i32, buf: *const u8, len: usize, _flags: i32) -> isize {
         let (_tid, file) = {
             let task_lock = task.lock();
             let tid = task_lock.tid;
+            if sockfd < 0 {
+                pr_debug!("send: EBADF tid={}, sockfd={}", tid, sockfd);
+                return -(crate::uapi::errno::EBADF as isize);
+            }
             let file = match task_lock.fd_table.get(sockfd as usize) {
                 Ok(f) => f,
                 Err(_) => {
-                    crate::pr_warn!("send: EBADF tid={}, sockfd={}", tid, sockfd);
-                    return -9;
+                    pr_debug!("send: EBADF tid={}, sockfd={}", tid, sockfd);
+                    return -(crate::uapi::errno::EBADF as isize);
                 }
             };
             (tid, file)
@@ -860,11 +864,15 @@ pub fn recv(sockfd: i32, buf: *mut u8, len: usize, _flags: i32) -> isize {
         let (_tid, file) = {
             let task_lock = task.lock();
             let tid = task_lock.tid;
+            if sockfd < 0 {
+                pr_debug!("recv: EBADF tid={}, sockfd={}", tid, sockfd);
+                return -(crate::uapi::errno::EBADF as isize);
+            }
             let file = match task_lock.fd_table.get(sockfd as usize) {
                 Ok(f) => f,
                 Err(_) => {
-                    crate::pr_warn!("recv: EBADF tid={}, sockfd={}", tid, sockfd);
-                    return -9;
+                    pr_debug!("recv: EBADF tid={}, sockfd={}", tid, sockfd);
+                    return -(crate::uapi::errno::EBADF as isize);
                 }
             };
             (tid, file)
