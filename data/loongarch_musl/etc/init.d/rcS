@@ -42,8 +42,12 @@ else
 fi
 
 # 执行 /etc/fstab 中定义的挂载
-echo "Mounting file systems via fstab..."
-/bin/mount -a
+if [ -f /etc/fstab ]; then
+    echo "Mounting file systems via fstab..."
+    /bin/mount -a
+else
+    echo "Warning: /etc/fstab not found; skipping fstab mounts."
+fi
 
 # 启动日志服务 (可选，如果配置了 syslogd)
 # /sbin/syslogd
