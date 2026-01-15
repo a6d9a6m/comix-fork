@@ -3,7 +3,7 @@ use virtio_drivers::transport::{mmio::MmioTransport, pci::PciTransport};
 use crate::{
     device::{
         Driver,
-        net::{add_network_device, net_device::VirtioNetDevice},
+        net::{add_network_device, net_device::{NetDeviceError, VirtioNetDevice}},
     },
     net::interface::NetworkInterface,
     pr_info, pr_warn, println,
@@ -54,6 +54,9 @@ pub fn init(transport: MmioTransport<'static>) {
                 network_interface.name()
             );
         }
+        Err(NetDeviceError::DeviceNotReady) => {
+            pr_info!("[Device] VirtioNetDevice not ready; skipping");
+        }
         Err(e) => {
             pr_warn!("[Device] Failed to initialize VirtioNetDevice: {:?}", e);
         }
@@ -91,6 +94,9 @@ pub fn init_pci(transport: PciTransport) {
                 "[Device] Network interface {} initialized successfully",
                 network_interface.name()
             );
+        }
+        Err(NetDeviceError::DeviceNotReady) => {
+            pr_info!("[Device] VirtioNetDevice not ready; skipping");
         }
         Err(e) => {
             pr_warn!("[Device] Failed to initialize VirtioNetDevice: {:?}", e);
