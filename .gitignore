@@ -43,3 +43,6 @@ os/optimization_report.md
 
 # Local tooling
 .claude/
+# OS artifacts
+os/loongarch-debug.log
+os/qemu-virt-loongarch.dtb
