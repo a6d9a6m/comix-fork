@@ -14,11 +14,11 @@ use virtio_drivers::transport::{
 use crate::{
     device::{
         block::virtio_blk, device_tree::DEVICE_TREE_REGISTRY, gpu::virtio_gpu, input::virtio_input,
-        net::virtio_net,
+        network::virtio_network,
     },
     kernel::current_memory_space,
-    mm::address::{Paddr, UsizeConvert},
-    pr_info, pr_warn,
+    memory::address::{Paddr, UsizeConvert},
+    pr_warn,
 };
 
 pub fn driver_init() {
@@ -67,7 +67,7 @@ fn virtio_device(transport: MmioTransport<'static>) {
         DeviceType::Block => virtio_blk::init(transport),
         DeviceType::GPU => virtio_gpu::init(transport),
         DeviceType::Input => virtio_input::init(transport),
-        DeviceType::Network => virtio_net::init(transport),
+        DeviceType::Network => virtio_network::init(transport),
         t => pr_warn!("Unrecognized virtio device: {:?}", t),
     }
 }

@@ -9,13 +9,13 @@ use alloc::{sync::Arc, vec::Vec};
 
 use crate::{
     arch::{timer::clock_freq, trap::restore},
-    ipc::{create_siginfo_for_signal, do_sigpending},
+    interprocess::{create_siginfo_for_signal, do_sigpending},
     kernel::{
         SharedTask, TASK_MANAGER, TIMER_QUEUE, TaskManagerTrait, current_task,
         sleep_task_with_guard_and_block, yield_task,
     },
-    sync::SpinLock,
-    uapi::{
+    synchronization::SpinLock,
+    user_api::{
         errno::{EAGAIN, EINTR, EINVAL, ENOMEM, ENOSYS, ESRCH},
         signal::{
             MINSIGSTKSZ, NSIG, RtSigFrame, SIG_BLOCK, SIG_SETMASK, SIG_UNBLOCK, SIGSET_SIZE,
@@ -25,7 +25,7 @@ use crate::{
         time::TimeSpec,
         types::{SigSetT, StackT},
     },
-    util::user_buffer::{read_from_user, write_to_user},
+    utilities::user_buffer::{read_from_user, write_to_user},
 };
 
 /// 修改当前任务的信号屏蔽字

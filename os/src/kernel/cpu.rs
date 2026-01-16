@@ -3,11 +3,11 @@
 //! 包含 CPU 结构体及其相关操作
 use alloc::sync::Arc;
 
-use crate::mm::activate;
+use crate::memory::activate;
 use crate::{
-    kernel::task::SharedTask,
-    mm::memory_space::MemorySpace,
-    sync::{PerCpu, SpinLock},
+    kernel::task_control::SharedTask,
+    memory::memory_space::MemorySpace,
+    synchronization::{PerCpu, SpinLock},
 };
 use lazy_static::lazy_static;
 
@@ -135,7 +135,7 @@ mod tests {
     /// 测试 cpu_id() 函数
     test_case!(test_cpu_id, {
         use crate::arch::kernel::cpu::cpu_id;
-        use crate::sync::PreemptGuard;
+        use crate::synchronization::PreemptGuard;
 
         let _guard = PreemptGuard::new();
         let id = cpu_id();
@@ -144,7 +144,7 @@ mod tests {
 
     /// 测试 current_cpu() 函数
     test_case!(test_current_cpu, {
-        use crate::sync::PreemptGuard;
+        use crate::synchronization::PreemptGuard;
 
         let _guard = PreemptGuard::new();
         let cpu = current_cpu();
@@ -165,7 +165,7 @@ mod tests {
 
     /// 测试 PerCpu 数据独立性（多核场景）
     test_case!(test_per_cpu_independence, {
-        use crate::sync::{PerCpu, PreemptGuard};
+        use crate::synchronization::{PerCpu, PreemptGuard};
         use core::sync::atomic::{AtomicUsize, Ordering};
 
         let per_cpu = PerCpu::new(|| AtomicUsize::new(0));
@@ -201,7 +201,7 @@ mod tests {
 
     /// 测试 PerCpu 的 new_with_id 初始化
     test_case!(test_per_cpu_with_id, {
-        use crate::sync::PerCpu;
+        use crate::synchronization::PerCpu;
 
         let per_cpu = PerCpu::new_with_id(|cpu_id| cpu_id * 10);
 

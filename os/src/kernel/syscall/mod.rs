@@ -3,26 +3,26 @@
 //! 提供系统调用的实现
 
 #![allow(dead_code)]
-mod cred;
-mod fcntl;
-mod fs;
-pub mod io;
-mod ioctl;
-mod ipc;
-mod mm;
-mod network;
+mod credentials;
+mod file_control;
+mod filesystem;
+pub mod io_operations;
+mod io_control;
+mod interprocess;
+mod memory;
+mod networking;
 mod signal;
-mod sys;
-mod task;
-mod util;
+mod system;
+mod task_control;
+mod utilities;
 
 use core::ffi::{c_char, c_int, c_uint, c_ulong, c_void};
 
 use crate::{
     impl_syscall,
-    uapi::{
-        fs::LinuxStatFs,
-        futex::RobustListHead,
+    user_api::{
+        filesystem::LinuxStatFs,
+        fast_userspace_mutex::RobustListHead,
         iovec::IoVec,
         resource::{Rlimit, Rusage},
         signal::{SigInfoT, SignalAction},
@@ -31,19 +31,19 @@ use crate::{
         types::{SigSetT, SizeT, StackT},
         uts_namespace::UtsNamespace,
     },
-    vfs::{Stat, Statx},
+    virtual_fs::{Stat, Statx},
 };
-use cred::*;
-use fcntl::*;
-use fs::*;
-use io::*;
-use ioctl::*;
-use ipc::*;
-use mm::*;
-use network::*;
+use credentials::*;
+use file_control::*;
+use filesystem::*;
+use io_operations::*;
+use io_control::*;
+use interprocess::*;
+use memory::*;
+use networking::*;
 use signal::*;
-use sys::*;
-use task::*;
+use system::*;
+use task_control::*;
 
 // 系统调用实现注册
 // 分类顺序与 arch/riscv/syscall/syscall_number.rs 保持一致

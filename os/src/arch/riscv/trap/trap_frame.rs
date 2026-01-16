@@ -1,6 +1,6 @@
 use riscv::register::sstatus;
 
-use crate::uapi::signal::MContextT;
+use crate::user_api::signal::MContextT;
 
 /// 陷阱帧结构体，保存寄存器状态
 #[repr(C)] // 确保 Rust 不会重新排列字段
@@ -54,7 +54,7 @@ impl TrapFrame {
     pub fn zero_init() -> Self {
         // 获取当前 CPU 的指针
         let cpu_ptr = {
-            use crate::sync::PreemptGuard;
+            use crate::synchronization::PreemptGuard;
             let _guard = PreemptGuard::new();
             crate::kernel::current_cpu() as *const _ as usize
         };
@@ -178,7 +178,7 @@ impl TrapFrame {
         self.x2_sp = kernel_sp;
         // 设置 tp 指向当前 CPU 结构体
         self.x4_tp = {
-            use crate::sync::PreemptGuard;
+            use crate::synchronization::PreemptGuard;
             let _guard = PreemptGuard::new();
             crate::kernel::current_cpu() as *const _ as usize
         };

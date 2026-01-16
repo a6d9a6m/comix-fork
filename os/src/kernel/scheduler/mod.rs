@@ -1,7 +1,7 @@
 //！ 调度器模块
 //!
 //！ 定义了调度器接口和相关功能
-mod rr_scheduler;
+mod round_robin_scheduler;
 mod task_queue;
 mod wait_queue;
 
@@ -10,8 +10,8 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use crate::{
     arch::kernel::{context::Context, switch},
     config::MAX_CPU_COUNT,
-    kernel::{TaskState, TaskStruct, scheduler::rr_scheduler::RRScheduler, task::SharedTask},
-    sync::{SpinLock, SpinLockGuard},
+    kernel::{TaskState, TaskStruct, scheduler::round_robin_scheduler::RRScheduler, task_control::SharedTask},
+    synchronization::{SpinLock, SpinLockGuard},
 };
 
 pub use task_queue::TaskQueue;
@@ -101,7 +101,7 @@ pub fn pick_cpu() -> usize {
 /// 执行一次调度操作，切换到下一个任务
 pub fn schedule() {
     // 读取并禁用中断，保护整个调度过程，并在返回时恢复原状态
-    let flags = unsafe { crate::arch::intr::read_and_disable_interrupts() };
+    let flags = unsafe { crate::arch::interrupts::read_and_disable_interrupts() };
 
     // 快速路径：如果运行队列为空且当前任务仍是 Running，就无需进入调度器
     let should_try_switch = {
@@ -134,7 +134,7 @@ pub fn schedule() {
     }
 
     // 恢复进入前的中断状态
-    unsafe { crate::arch::intr::restore_interrupts(flags) };
+    unsafe { crate::arch::interrupts::restore_interrupts(flags) };
 }
 
 /// 主动放弃 CPU
@@ -171,8 +171,7 @@ pub fn wake_up_with_block(task: SharedTask) {
     // 关键：多核下 wake 可能被重复触发（不同 CPU/不同事件源），必须做到“全局幂等”：
     // - 若任务已经是 Running（正在跑/已入队），则不要再次入队到其他 CPU 的运行队列
     // 否则同一任务可能被两个 CPU 同时调度运行，导致 TrapFrame/上下文被并发破坏（海森堡 panic/挂起）。
-    let mut should_ipi = false;
-    {
+    let should_ipi = {
         let mut sched = scheduler_of(target_cpu).lock();
 
         // 用 task 锁串行化唤醒状态转换，避免跨 CPU 的“双重入队”
@@ -195,8 +194,8 @@ pub fn wake_up_with_block(task: SharedTask) {
             target_cpu
         );
         sched.wake_up(task);
-        should_ipi = target_cpu != current_cpu;
-    }
+        target_cpu != current_cpu
+    };
 
     if should_ipi {
         crate::pr_debug!(
@@ -205,7 +204,7 @@ pub fn wake_up_with_block(task: SharedTask) {
             target_cpu,
             task_tid
         );
-        crate::arch::ipi::send_reschedule_ipi(target_cpu);
+        crate::arch::interprocessor_interrupt::send_reschedule_ipi(target_cpu);
     }
 }
 

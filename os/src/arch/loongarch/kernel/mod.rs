@@ -3,7 +3,7 @@
 use core::arch::global_asm;
 
 pub mod context;
-pub mod task;
+pub mod task_context;
 
 global_asm!(include_str!("switch.S"));
 

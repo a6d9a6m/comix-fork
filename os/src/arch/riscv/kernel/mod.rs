@@ -5,7 +5,7 @@ use crate::arch::kernel::context::Context;
 
 pub mod context;
 pub mod cpu;
-pub mod task;
+pub mod task_context;
 
 global_asm!(include_str!("switch.S"));
 

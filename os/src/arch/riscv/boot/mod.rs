@@ -9,30 +9,30 @@ use riscv::register::sscratch;
 global_asm!(include_str!("entry.S"));
 
 use crate::{
-    arch::{intr, mm::vaddr_to_paddr, platform, timer, trap, trap::TrapFrame},
+    arch::{interrupts, memory::vaddr_to_paddr, platform, timer, trap, trap::TrapFrame},
     earlyprintln,
-    ipc::{SignalHandlerTable, SignalPending},
+    interprocess::{SignalHandlerTable, SignalPending},
     kernel::{
         FsStruct, NUM_CPU, Scheduler, TASK_MANAGER, TaskManagerTrait, TaskStruct, current_cpu,
         current_memory_space, current_task, kernel_execve, kthread_spawn, kworker,
         sleep_task_with_block, time, yield_task,
     },
-    mm::{
+    memory::{
         self,
         frame_allocator::{alloc_contig_frames, alloc_frame},
     },
     pr_debug, pr_err, pr_info, pr_warn,
-    sync::SpinLock,
-    test::run_early_tests,
-    uapi::{
+    synchronization::SpinLock,
+    tests::run_early_tests,
+    user_api::{
         resource::{INIT_RLIMITS, RlimitStruct},
         signal::SignalFlags,
         uts_namespace::UtsNamespace,
     },
-    vfs::{create_stdio_files, fd_table, get_root_dentry},
+    virtual_fs::{create_stdio_files, file_descriptor_table, get_root_dentry},
 };
 // Needed for Ppn::as_usize
-use crate::mm::address::UsizeConvert;
+use crate::memory::address::UsizeConvert;
 
 /// 已上线 CPU 位掩码
 ///
@@ -40,9 +40,9 @@ use crate::mm::address::UsizeConvert;
 /// 使用原子操作确保多核环境下的线程安全。
 static CPU_ONLINE_MASK: AtomicUsize = AtomicUsize::new(0);
 
-/// 从核启动标志（在 entry.S 中定义）
-///
-/// 主核设置此标志为 1 后，所有从核将从 WFI 中唤醒并开始启动。
+// 从核启动标志（在 entry.S 中定义）
+//
+// 主核设置此标志为 1 后，所有从核将从 WFI 中唤醒并开始启动。
 unsafe extern "C" {
     static mut secondary_boot_flag: u64;
 }
@@ -61,15 +61,15 @@ pub fn rest_init() {
     let tid = 1;
     let kstack_tracker = alloc_contig_frames(4).expect("kthread_spawn: failed to alloc kstack");
     let trap_frame_tracker = alloc_frame().expect("kthread_spawn: failed to alloc trap_frame");
-    let fd_table = fd_table::FDTable::new();
+    let file_descriptor_table = file_descriptor_table::FDTable::new();
     let (stdin, stdout, stderr) = create_stdio_files();
-    fd_table
+    file_descriptor_table
         .install_at(0, stdin)
         .expect("Failed to install stdin");
-    fd_table
+    file_descriptor_table
         .install_at(1, stdout)
         .expect("Failed to install stdout");
-    fd_table
+    file_descriptor_table
         .install_at(2, stderr)
         .expect("Failed to install stderr");
     let cwd = get_root_dentry().ok();
@@ -87,7 +87,7 @@ pub fn rest_init() {
         Arc::new(SpinLock::new(SignalPending::empty())),
         Arc::new(SpinLock::new(UtsNamespace::default())),
         Arc::new(SpinLock::new(RlimitStruct::new(INIT_RLIMITS))),
-        Arc::new(fd_table),
+        Arc::new(file_descriptor_table),
         fs,
     ); // init 没有父任务
 
@@ -112,7 +112,7 @@ pub fn rest_init() {
     }
     TASK_MANAGER.lock().add_task(task.clone());
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         current_cpu().switch_task(task);
     }
 
@@ -138,13 +138,13 @@ fn init() {
     super::trap::init();
 
     // 启用中断（在设置好 trap 处理和 sscratch 之后）
-    unsafe { intr::enable_interrupts() };
+    unsafe { interrupts::enable_interrupts() };
 
     create_kthreadd();
 
     // 初始化 Ext4 文件系统（从真实块设备）
     // 必须在任务上下文中进行,因为 VFS 需要 current_task()
-    if let Err(e) = crate::fs::init_ext4_from_block_device() {
+    if let Err(e) = crate::filesystem::init_ext4_from_block_device() {
         pr_err!(
             "[Init] Warning: Failed to initialize Ext4 filesystem: {:?}",
             e
@@ -153,7 +153,7 @@ fn init() {
     }
 
     // 初始化默认网络配置（eth0 + 127.0.0.1 loopback + 全局 NET_IFACE）
-    if let Err(e) = crate::net::config::NetworkConfigManager::init_default_interface() {
+    if let Err(e) = crate::network::config::NetworkConfigManager::init_default_interface() {
         pr_warn!(
             "[Init] Warning: Failed to init default network interface: {:?}",
             e
@@ -184,13 +184,13 @@ fn create_kthreadd() {
     let tid = TASK_MANAGER.lock().allocate_tid();
     let kstack_tracker = alloc_contig_frames(4).expect("kthread_spawn: failed to alloc kstack");
     let trap_frame_tracker = alloc_frame().expect("kthread_spawn: failed to alloc trap_frame");
-    let (uts, rlimit, fd_table, fs) = {
+    let (uts, rlimit, file_descriptor_table, fs) = {
         let task = current_task();
         let t = task.lock();
         (
             t.uts_namespace.clone(),
             t.rlimit.clone(),
-            t.fd_table.clone_table(),
+            t.file_descriptor_table.clone_table(),
             t.fs.lock().clone(),
         )
     };
@@ -206,7 +206,7 @@ fn create_kthreadd() {
         Arc::new(SpinLock::new(SignalPending::empty())),
         uts,
         rlimit,
-        Arc::new(fd_table),
+        Arc::new(file_descriptor_table),
         Arc::new(SpinLock::new(fs)),
     ); // kthreadd 没有父任务
 
@@ -232,7 +232,7 @@ pub fn main(hartid: usize) {
     earlyprintln!("[Boot] Hello, world!");
     earlyprintln!("[Boot] RISC-V Hart {} is up!", hartid);
 
-    let kernel_space = mm::init();
+    let kernel_space = memory::init();
 
     // 初始化 CPUS 并设置 tp 指向 CPU 0
     // 必须在任何可能调用 cpu_id() 的代码之前完成
@@ -247,7 +247,7 @@ pub fn main(hartid: usize) {
 
     // 激活内核地址空间并设置 current_memory_space
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         current_cpu().switch_space(kernel_space);
         earlyprintln!("[Boot] Activated kernel address space");
     }
@@ -271,7 +271,7 @@ pub fn main(hartid: usize) {
 
     // 为 CPU0 创建并登记 idle 任务（不加入调度队列，仅作兜底）
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         if current_cpu().idle_task.is_none() {
             let idle0 = create_idle_task(0);
             current_cpu().idle_task = Some(idle0);
@@ -296,7 +296,7 @@ fn clear_bss() {
 
     (sbss_paddr..ebss_paddr).for_each(|a| unsafe {
         // 访问物理地址需要通过 paddr_to_vaddr 转换
-        let va = crate::arch::mm::paddr_to_vaddr(a);
+        let va = crate::arch::memory::paddr_to_vaddr(a);
         (va as *mut u8).write_volatile(0)
     });
 }
@@ -352,9 +352,9 @@ mod tests {
 fn idle_loop() -> ! {
     loop {
         // 确保中断启用
-        if !crate::arch::intr::are_interrupts_enabled() {
+        if !crate::arch::interrupts::are_interrupts_enabled() {
             unsafe {
-                crate::arch::intr::enable_interrupts();
+                crate::arch::interrupts::enable_interrupts();
             }
         }
 
@@ -368,15 +368,15 @@ fn idle_loop() -> ! {
 /// 为指定CPU创建idle任务
 fn create_idle_task(cpu_id: usize) -> crate::kernel::SharedTask {
     use crate::arch::trap::TrapFrame;
-    use crate::ipc::{SignalHandlerTable, SignalPending};
+    use crate::interprocess::{SignalHandlerTable, SignalPending};
     use crate::kernel::FsStruct;
     use crate::kernel::{TASK_MANAGER, TaskStruct};
-    use crate::mm::frame_allocator::alloc_contig_frames;
-    use crate::sync::SpinLock;
-    use crate::uapi::resource::{INIT_RLIMITS, RlimitStruct};
-    use crate::uapi::signal::SignalFlags;
-    use crate::uapi::uts_namespace::UtsNamespace;
-    use crate::vfs::fd_table::FDTable;
+    use crate::memory::frame_allocator::alloc_contig_frames;
+    use crate::synchronization::SpinLock;
+    use crate::user_api::resource::{INIT_RLIMITS, RlimitStruct};
+    use crate::user_api::signal::SignalFlags;
+    use crate::user_api::uts_namespace::UtsNamespace;
+    use crate::virtual_fs::file_descriptor_table::FDTable;
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
 
@@ -478,7 +478,7 @@ pub extern "C" fn secondary_start(hartid: usize) -> ! {
 
     // 设置idle任务为当前任务，并记录为本CPU的idle句柄
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         let cpu = current_cpu();
         cpu.idle_task = Some(idle_task.clone());
         cpu.switch_task(idle_task);
@@ -486,9 +486,9 @@ pub extern "C" fn secondary_start(hartid: usize) -> ! {
     pr_info!("[SMP] CPU {} set idle task as current_task", hartid);
 
     // 切换到最终的内核页表（与 CPU0 共享），避免长期停留在 boot_pagetable
-    if let Some(kernel_space) = crate::mm::get_global_kernel_space() {
+    if let Some(kernel_space) = crate::memory::get_global_kernel_space() {
         {
-            let _guard = crate::sync::PreemptGuard::new();
+            let _guard = crate::synchronization::PreemptGuard::new();
             current_cpu().switch_space(kernel_space.clone());
         }
         let root_ppn = kernel_space.lock().root_ppn();
@@ -509,7 +509,7 @@ pub extern "C" fn secondary_start(hartid: usize) -> ! {
 
     // 启用中断
     unsafe {
-        intr::enable_interrupts();
+        interrupts::enable_interrupts();
     }
 
     // 检查中断配置状态
@@ -546,7 +546,7 @@ pub extern "C" fn secondary_start(hartid: usize) -> ! {
     idle_loop();
 }
 
-/// SBI HSM 从核入口（在 entry.S 中定义）
+// SBI HSM 从核入口（在 entry.S 中定义）
 unsafe extern "C" {
     fn secondary_sbi_entry();
 }
@@ -578,7 +578,7 @@ pub fn boot_secondary_cpus(num_cpus: usize) {
     let mut expected_mask: usize = 1; // CPU0 已在线
     for hartid in 1..num_cpus {
         let start_vaddr = secondary_sbi_entry as usize;
-        let start_paddr = unsafe { crate::arch::mm::vaddr_to_paddr(start_vaddr) };
+        let start_paddr = unsafe { crate::arch::memory::vaddr_to_paddr(start_vaddr) };
         pr_info!(
             "[SMP] Starting hart {} at vaddr=0x{:x}, paddr=0x{:x}",
             hartid,

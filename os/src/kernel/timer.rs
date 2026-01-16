@@ -4,7 +4,7 @@
 
 use alloc::{collections::btree_map::BTreeMap, sync::Arc};
 
-use crate::{kernel::SharedTask, sync::SpinLock, vfs::TimeSpec};
+use crate::{kernel::SharedTask, synchronization::SpinLock, virtual_fs::TimeSpec};
 
 lazy_static::lazy_static! {
     /// 全局等待队列实例
@@ -85,6 +85,7 @@ pub struct TimerEntry {
 
 impl TimerEntry {
     /// 创建一个新的定时器条目
+    #[allow(dead_code)]
     pub fn new(sig: usize, task: SharedTask, it_interval: TimeSpec) -> Self {
         Self {
             sig,

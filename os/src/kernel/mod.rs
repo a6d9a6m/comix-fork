@@ -6,7 +6,7 @@
 
 mod cpu;
 mod scheduler;
-mod task;
+mod task_control;
 mod timer;
 
 pub mod syscall;
@@ -14,5 +14,5 @@ pub mod time;
 
 pub use cpu::*;
 pub use scheduler::*;
-pub use task::*;
+pub use task_control::*;
 pub use timer::*;

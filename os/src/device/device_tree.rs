@@ -3,9 +3,9 @@
 use crate::{
     device::{CMDLINE, irq::IntcDriver},
     kernel::{CLOCK_FREQ, NUM_CPU},
-    mm::address::{ConvertablePaddr, Paddr, UsizeConvert},
+    memory::address::{ConvertablePaddr, Paddr, UsizeConvert},
     pr_info, pr_warn,
-    sync::RwLock,
+    synchronization::RwLock,
 };
 use alloc::{collections::btree_map::BTreeMap, string::String, sync::Arc};
 use fdt::{Fdt, node::FdtNode};

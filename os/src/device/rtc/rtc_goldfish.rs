@@ -6,9 +6,9 @@ use crate::{
         DRIVERS, DeviceType, Driver, RTC_DRIVERS, device_tree::DEVICE_TREE_REGISTRY, rtc::RtcDriver,
     },
     kernel::current_memory_space,
-    mm::address::{Paddr, UsizeConvert},
+    memory::address::{Paddr, UsizeConvert},
     pr_info, pr_warn,
-    util::read,
+    utilities::read,
 };
 
 const TIMER_TIME_LOW: usize = 0x00;
@@ -19,7 +19,7 @@ pub struct RtcGoldfish {
 }
 
 impl Driver for RtcGoldfish {
-    fn try_handle_interrupt(&self, irq: Option<usize>) -> bool {
+    fn try_handle_interrupt(&self, _irq: Option<usize>) -> bool {
         false
     }
 

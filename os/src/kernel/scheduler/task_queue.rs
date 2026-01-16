@@ -3,7 +3,7 @@
 //! 定义了任务队列结构体及其相关操作
 use alloc::{sync::Arc, vec::Vec};
 
-use crate::kernel::task::SharedTask;
+use crate::kernel::task_control::SharedTask;
 
 /// 任务队列
 /// 用于存放任务
@@ -67,7 +67,7 @@ impl TaskQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{kassert, kernel::task::TaskStruct, test_case};
+    use crate::{kassert, kernel::task_control::TaskStruct, test_case};
     use alloc::sync::Arc;
 
     fn mk_task(tid: u32) -> SharedTask {

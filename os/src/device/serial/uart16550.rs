@@ -10,9 +10,9 @@ use crate::{
         device_tree::DEVICE_TREE_REGISTRY, serial::SerialDriver,
     },
     kernel::current_memory_space,
-    mm::address::{Paddr, UsizeConvert},
+    memory::address::{Paddr, UsizeConvert},
     pr_info, pr_warn,
-    sync::SpinLock,
+    synchronization::SpinLock,
 };
 
 /// 16550 UART 串行端口驱动程序结构体
@@ -21,7 +21,7 @@ pub struct Uart16550 {
 }
 
 impl Driver for Uart16550 {
-    fn try_handle_interrupt(&self, irq: Option<usize>) -> bool {
+    fn try_handle_interrupt(&self, _irq: Option<usize>) -> bool {
         todo!()
     }
 

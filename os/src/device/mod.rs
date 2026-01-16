@@ -7,21 +7,20 @@ pub mod console;
 pub mod gpu;
 pub mod input;
 pub mod irq;
-pub mod net;
+pub mod network;
 pub mod rtc;
 pub mod serial;
 pub mod virtio_hal;
 
 pub mod device_tree;
 
-use crate::sync::RwLock;
+use crate::synchronization::RwLock;
 use alloc::sync::Arc;
-pub use block::ram_disk::RamDisk;
 
 use crate::device::rtc::RtcDriver;
 
 use crate::device::serial::SerialDriver;
-use crate::device::{block::BlockDriver, net::net_device::NetDevice};
+use crate::device::{block::BlockDriver, network::network_device::NetDevice};
 
 use alloc::{string::String, vec::Vec};
 use lazy_static::lazy_static;

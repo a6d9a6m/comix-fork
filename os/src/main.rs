@@ -6,6 +6,7 @@
 
 #![no_std]
 #![no_main]
+#![allow(dead_code)]
 #![feature(custom_test_frameworks)]
 #![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
@@ -16,26 +17,26 @@ mod arch;
 mod config;
 mod console;
 mod device;
-mod fs;
-mod ipc;
+mod filesystem;
+mod interprocess;
 mod kernel;
-mod mm;
+mod memory;
 mod security;
-mod sync;
-mod test;
-mod uapi;
-mod util;
-mod vfs;
+mod synchronization;
+mod tests;
+mod user_api;
+mod utilities;
+mod virtual_fs;
 #[macro_use]
-mod log;
-mod net;
+mod logging;
+mod network;
 
 use crate::arch::lib::sbi::shutdown;
 #[cfg(target_arch = "loongarch64")]
 use core::arch::asm;
 use core::panic::PanicInfo;
 #[cfg(test)]
-use test::test_runner;
+use tests::test_runner;
 
 /// Rust 内核主入口点
 ///

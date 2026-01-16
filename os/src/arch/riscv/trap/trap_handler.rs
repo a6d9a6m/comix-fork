@@ -5,7 +5,7 @@
 use core::sync::atomic::Ordering;
 
 use crate::earlyprintln;
-use crate::ipc::check_signal;
+use crate::interprocess::check_signal;
 use riscv::register::scause::{self, Trap};
 use riscv::register::sstatus::SPP;
 use riscv::register::{sepc, sscratch, sstatus, stval};
@@ -83,7 +83,7 @@ pub fn user_trap(
         }
         Trap::Interrupt(1) => {
             // 软件中断（IPI）：仅当有待运行任务时才调度，避免空转
-            crate::arch::ipi::handle_ipi();
+            crate::arch::interprocessor_interrupt::handle_ipi();
             let need_sched = {
                 let sched = crate::kernel::current_scheduler().lock();
                 !sched.is_empty()
@@ -238,11 +238,11 @@ pub fn user_trap(
             // 不要因为用户态异常让内核 panic；仿照 Linux 行为，终止当前任务即可。
             // TODO: 进一步完善为向进程投递对应信号（SIGILL/SIGSEGV/...），并支持 core dump 等。
             let sig = match scause.cause() {
-                Trap::Exception(2) => crate::uapi::signal::NUM_SIGILL, // Illegal Instruction
+                Trap::Exception(2) => crate::user_api::signal::NUM_SIGILL, // Illegal Instruction
                 Trap::Exception(12) | Trap::Exception(13) | Trap::Exception(15) => {
-                    crate::uapi::signal::NUM_SIGSEGV
+                    crate::user_api::signal::NUM_SIGSEGV
                 }
-                _ => crate::uapi::signal::NUM_SIGILL,
+                _ => crate::user_api::signal::NUM_SIGILL,
             };
             crate::kernel::terminate_task(128 + sig);
         }
@@ -283,7 +283,7 @@ pub fn kernel_trap(scause: scause::Scause, sepc_old: usize, sstatus_old: sstatus
         }
         Trap::Interrupt(1) => {
             // 软件中断（IPI）：仅当运行队列非空时触发调度
-            crate::arch::ipi::handle_ipi();
+            crate::arch::interprocessor_interrupt::handle_ipi();
             let need_sched = {
                 let sched = crate::kernel::current_scheduler().lock();
                 !sched.is_empty()
@@ -332,8 +332,8 @@ pub fn check_timer() {
 
     // 推进网络栈，避免在仅有 loopback/null-net 且任务阻塞在 select/poll 时网络停滞。
     // 在时钟中断里推进一次网络栈，保证即便缺少真实网卡中断也能推进 TCP 状态机/重传等。
-    crate::net::socket::poll_network_interfaces();
-    crate::kernel::syscall::io::wake_poll_waiters();
+    crate::network::socket::poll_network_interfaces();
+    crate::kernel::syscall::io_operations::wake_poll_waiters();
 
     while let Some(task) = TIMER_QUEUE.lock().pop_due_task(get_time()) {
         wake_up_with_block(task);

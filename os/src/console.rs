@@ -7,7 +7,7 @@
 use core::fmt::{self, Write};
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use crate::sync::SpinLock;
+use crate::synchronization::SpinLock;
 
 /// 控制台是否已切换到运行时模式
 static CONSOLE_RUNTIME: AtomicBool = AtomicBool::new(false);

@@ -39,6 +39,7 @@ os/loongarch.log
 
 # Local notes
 os/可能的改进.md
+os/optimization_report.md
 
 # Local tooling
 .claude/

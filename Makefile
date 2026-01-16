@@ -16,7 +16,7 @@ else
     GDB_SCRIPT := cargo run -- --gdb
 endif
 
-.PHONY: docker build_docker fmt run build clean clean-all gdb
+.PHONY: docker build_docker fmt run build clean clean-all gdb all
 
 docker:
 	docker run --rm -it -v ${PWD}:/mnt -w /mnt --name comix ${DOCKER_TAG} bash
@@ -30,6 +30,13 @@ fmt:
 # 构建内核（build.rs 会自动编译 user 并打包镜像）
 build:
 	cd os && cargo build --target $(TARGET)
+
+# 评测用：同时生成 RISC-V 和 LoongArch ELF 内核
+all:
+	cd os && cargo build --target riscv64gc-unknown-none-elf
+	cd os && cargo build --target loongarch64-unknown-none
+	cp os/target/riscv64gc-unknown-none-elf/debug/os kernel-rv
+	cp os/target/loongarch64-unknown-none/debug/os kernel-la
 
 # 运行内核（build.rs 会自动编译 user 并打包镜像）
 run:

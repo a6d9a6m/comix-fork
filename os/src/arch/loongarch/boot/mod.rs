@@ -9,29 +9,29 @@ use alloc::sync::Arc;
 
 use crate::{
     arch::{
-        intr,
-        mm::{paddr_to_vaddr, vaddr_to_paddr},
+        interrupts,
+        memory::{paddr_to_vaddr, vaddr_to_paddr},
         platform, timer, trap,
     },
     earlyprintln,
-    ipc::{SignalHandlerTable, SignalPending},
+    interprocess::{SignalHandlerTable, SignalPending},
     kernel::{
         FsStruct, Scheduler, TASK_MANAGER, TaskManagerTrait, TaskStruct, current_cpu, current_task,
         kernel_execve, kthread_spawn, kworker, sleep_task_with_block, time, yield_task,
     },
-    mm::{
+    memory::{
         self,
         frame_allocator::{alloc_contig_frames, alloc_frame},
     },
     pr_err, pr_info, println,
-    sync::SpinLock,
-    test::run_early_tests,
-    uapi::{
+    synchronization::SpinLock,
+    tests::run_early_tests,
+    user_api::{
         resource::{INIT_RLIMITS, RlimitStruct},
         signal::SignalFlags,
         uts_namespace::UtsNamespace,
     },
-    vfs::{create_stdio_files, fd_table, get_root_dentry},
+    virtual_fs::{create_stdio_files, file_descriptor_table, get_root_dentry},
 };
 
 global_asm!(include_str!("entry.S"));
@@ -44,15 +44,15 @@ pub fn rest_init() {
     let tid = 1;
     let kstack_tracker = alloc_contig_frames(4).expect("kthread_spawn: failed to alloc kstack");
     let trap_frame_tracker = alloc_frame().expect("kthread_spawn: failed to alloc trap_frame");
-    let fd_table = fd_table::FDTable::new();
+    let file_descriptor_table = file_descriptor_table::FDTable::new();
     let (stdin, stdout, stderr) = create_stdio_files();
-    fd_table
+    file_descriptor_table
         .install_at(0, stdin)
         .expect("Failed to install stdin");
-    fd_table
+    file_descriptor_table
         .install_at(1, stdout)
         .expect("Failed to install stdout");
-    fd_table
+    file_descriptor_table
         .install_at(2, stderr)
         .expect("Failed to install stderr");
     let cwd = get_root_dentry().ok();
@@ -70,7 +70,7 @@ pub fn rest_init() {
         Arc::new(SpinLock::new(SignalPending::empty())),
         Arc::new(SpinLock::new(UtsNamespace::default())),
         Arc::new(SpinLock::new(RlimitStruct::new(INIT_RLIMITS))),
-        Arc::new(fd_table),
+        Arc::new(file_descriptor_table),
         fs,
     ); // init 没有父任务
 
@@ -91,7 +91,7 @@ pub fn rest_init() {
     // 为 CPU0 创建 idle 任务，避免调度器在 runqueue 为空时 panic。
     // idle 任务不加入运行队列，但会作为兜底任务被切换运行。
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         let cpu = current_cpu();
         if cpu.idle_task.is_none() {
             cpu.idle_task = Some(create_idle_task(0));
@@ -104,7 +104,7 @@ pub fn rest_init() {
     }
     TASK_MANAGER.lock().add_task(task.clone());
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         current_cpu().switch_task(task);
     }
 
@@ -126,8 +126,8 @@ pub fn rest_init() {
 /// Idle 循环：等待中断；被定时器中断唤醒后由 trap/scheduler 决定是否调度。
 fn idle_loop() -> ! {
     loop {
-        if !crate::arch::intr::are_interrupts_enabled() {
-            unsafe { crate::arch::intr::enable_interrupts() };
+        if !crate::arch::interrupts::are_interrupts_enabled() {
+            unsafe { crate::arch::interrupts::enable_interrupts() };
         }
         unsafe {
             core::arch::asm!("idle 0");
@@ -138,8 +138,8 @@ fn idle_loop() -> ! {
 /// 为指定 CPU 创建 idle 任务（LoongArch 版本）
 fn create_idle_task(cpu_id: usize) -> crate::kernel::SharedTask {
     use crate::arch::trap::TrapFrame;
-    use crate::mm::frame_allocator::alloc_contig_frames;
-    use crate::vfs::fd_table::FDTable;
+    use crate::memory::frame_allocator::alloc_contig_frames;
+    use crate::virtual_fs::file_descriptor_table::FDTable;
 
     // idle 任务从 TID 分配器正常分配（从 2 开始）
     let tid = TASK_MANAGER.lock().allocate_tid();
@@ -189,13 +189,13 @@ fn init() {
     super::trap::init();
 
     // 启用中断（在设置好 trap 处理与 KScratch0 之后）
-    unsafe { intr::enable_interrupts() };
+    unsafe { interrupts::enable_interrupts() };
 
     create_kthreadd();
 
     // 初始化 Ext4 文件系统（从真实块设备）
     // 必须在任务上下文中进行,因为 VFS 需要 current_task()
-    if let Err(e) = crate::fs::init_ext4_from_block_device() {
+    if let Err(e) = crate::filesystem::init_ext4_from_block_device() {
         pr_err!(
             "[Init] Warning: Failed to initialize Ext4 filesystem: {:?}",
             e
@@ -226,13 +226,13 @@ fn create_kthreadd() {
     let tid = TASK_MANAGER.lock().allocate_tid();
     let kstack_tracker = alloc_contig_frames(4).expect("kthread_spawn: failed to alloc kstack");
     let trap_frame_tracker = alloc_frame().expect("kthread_spawn: failed to alloc trap_frame");
-    let (uts, rlimit, fd_table, fs) = {
+    let (uts, rlimit, file_descriptor_table, fs) = {
         let task = current_task();
         let t = task.lock();
         (
             t.uts_namespace.clone(),
             t.rlimit.clone(),
-            t.fd_table.clone_table(),
+            t.file_descriptor_table.clone_table(),
             t.fs.lock().clone(),
         )
     };
@@ -248,7 +248,7 @@ fn create_kthreadd() {
         Arc::new(SpinLock::new(SignalPending::empty())),
         uts,
         rlimit,
-        Arc::new(fd_table),
+        Arc::new(file_descriptor_table),
         Arc::new(SpinLock::new(fs)),
     ); // kthreadd 没有父任务
 
@@ -277,11 +277,11 @@ pub fn main(hartid: usize) {
     earlyprintln!("[Boot] Hello, world!");
     earlyprintln!("[Boot] LoongArch CPU {} is up!", hartid);
 
-    let kernel_space = mm::init();
+    let kernel_space = memory::init();
 
     // 激活内核地址空间并设置 current_memory_space（供 rest_init/current_memory_space 使用）
     {
-        let _guard = crate::sync::PreemptGuard::new();
+        let _guard = crate::synchronization::PreemptGuard::new();
         current_cpu().switch_space(kernel_space);
     }
 

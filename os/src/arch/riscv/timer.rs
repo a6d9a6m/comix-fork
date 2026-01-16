@@ -44,7 +44,7 @@ pub fn set_next_trigger() {
 pub fn init() {
     set_next_trigger();
     // Safe: 只在内核初始化阶段调用，确保唯一性
-    unsafe { crate::arch::intr::enable_timer_interrupt() };
+    unsafe { crate::arch::interrupts::enable_timer_interrupt() };
 }
 
 /// 获取时钟频率
@@ -68,8 +68,8 @@ mod tests {
     // test_case!(test_timer_ticks_increment, {
     //     crate::arch::trap::init_boot_trap();
     //     unsafe {
-    //         crate::arch::intr::enable_interrupts();
-    //         crate::arch::intr::enable_timer_interrupt();
+    //         crate::arch::interrupts::enable_interrupts();
+    //         crate::arch::interrupts::enable_timer_interrupt();
     //     }
     //     let initial_ticks = TIMER_TICKS.load(Ordering::Relaxed);
     //     // 模拟等待一段时间以触发定时器中断
@@ -82,8 +82,8 @@ mod tests {
     //     let later_ticks = TIMER_TICKS.load(Ordering::Relaxed);
     //     kassert!(later_ticks > initial_ticks);
     //     unsafe {
-    //         crate::arch::intr::disable_timer_interrupt();
-    //         crate::arch::intr::disable_interrupts();
+    //         crate::arch::interrupts::disable_timer_interrupt();
+    //         crate::arch::interrupts::disable_interrupts();
     //     }
     // });
 

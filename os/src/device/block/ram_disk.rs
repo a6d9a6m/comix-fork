@@ -1,6 +1,6 @@
 use super::super::{DeviceType, Driver};
 use super::BlockDriver;
-use crate::sync::SpinLock;
+use crate::synchronization::SpinLock;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec;

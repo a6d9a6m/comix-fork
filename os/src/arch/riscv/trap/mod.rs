@@ -28,7 +28,7 @@ pub fn init() {
     set_trap_entry();
     // 启用软件中断（用于 IPI）
     unsafe {
-        crate::arch::intr::enable_software_interrupt();
+        crate::arch::interrupts::enable_software_interrupt();
     }
 }
 

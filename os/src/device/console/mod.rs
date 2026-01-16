@@ -3,7 +3,7 @@
 pub mod frame_console;
 pub mod uart_console;
 
-use crate::sync::RwLock;
+use crate::synchronization::RwLock;
 use alloc::{string::String, sync::Arc, vec::Vec};
 
 lazy_static::lazy_static! {

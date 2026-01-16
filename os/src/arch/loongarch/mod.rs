@@ -5,11 +5,11 @@
 pub mod boot;
 pub mod constant;
 pub mod info;
-pub mod intr;
-pub mod ipi;
+pub mod interrupts;
+pub mod interprocessor_interrupt;
 pub mod kernel;
 pub mod lib;
-pub mod mm;
+pub mod memory;
 pub mod platform;
 mod selftest;
 pub mod syscall;

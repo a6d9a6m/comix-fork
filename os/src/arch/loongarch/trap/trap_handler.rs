@@ -11,7 +11,7 @@ use crate::arch::timer::{
 };
 use crate::arch::trap::restore;
 use crate::earlyprintln;
-use crate::ipc::check_signal;
+use crate::interprocess::check_signal;
 use crate::kernel::{TIMER, TIMER_QUEUE, schedule, send_signal_process, wake_up_with_block};
 
 use super::TrapFrame;
@@ -115,7 +115,7 @@ fn install_trap_entry() {
         // TLB refill 入口使用独立处理，进行软件页表遍历与 tlbfill
         // TLBRENT 必须使用物理地址，因为 TLB refill 时 CPU 处于直接地址翻译模式
         let tlbr_entry_paddr =
-            unsafe { crate::arch::mm::vaddr_to_paddr(tlb_refill_entry as usize) } & !0xfff;
+            unsafe { crate::arch::memory::vaddr_to_paddr(tlb_refill_entry as usize) } & !0xfff;
         core::arch::asm!(
             "csrwr {val}, {csr}",
             val = in(reg) tlbr_entry_paddr,

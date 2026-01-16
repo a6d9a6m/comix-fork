@@ -8,7 +8,7 @@ use crate::device::virtio_hal::VirtIOHal;
 
 use crate::device::{BLK_DRIVERS, DRIVERS, IRQ_MANAGER, NetDevice};
 use crate::pr_info;
-use crate::sync::Mutex;
+use crate::synchronization::Mutex;
 
 use super::{
     super::{DeviceType, Driver},

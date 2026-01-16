@@ -2,9 +2,9 @@
 
 use crate::{
     config::{VirtDevice, mmio_of},
-    device::{block::virtio_blk, device_tree::FDT, net::virtio_net},
+    device::{block::virtio_blk, device_tree::FDT, network::virtio_network},
     kernel::current_memory_space,
-    mm::{
+    memory::{
         address::{ConvertablePaddr, Paddr, UsizeConvert},
         page_table::PagingError,
     },
@@ -91,7 +91,7 @@ impl PcieHost {
             })
             .unwrap_or(3); // PCI 默认 3
 
-        let child_size_cells = node
+        let _child_size_cells = node
             .property("#size-cells")
             .and_then(|p| {
                 if p.value.len() >= 4 {
@@ -382,10 +382,10 @@ pub fn init_virtio_pci() {
         .map_mmio(Paddr::from_usize(host.ecam_paddr), host.ecam_size)
     {
         Ok(vaddr) => vaddr.as_usize(),
-        Err(PagingError::AlreadyMapped) => crate::arch::mm::paddr_to_vaddr(host.ecam_paddr),
+        Err(PagingError::AlreadyMapped) => crate::arch::memory::paddr_to_vaddr(host.ecam_paddr),
         Err(e) => {
             pr_warn!("[PCIe] failed to map ECAM: {:?}", e);
-            crate::arch::mm::paddr_to_vaddr(host.ecam_paddr)
+            crate::arch::memory::paddr_to_vaddr(host.ecam_paddr)
         }
     };
 
@@ -434,7 +434,7 @@ pub fn init_virtio_pci() {
 
             match dev_type {
                 DeviceType::Block => virtio_blk::init_pci(transport),
-                DeviceType::Network => virtio_net::init_pci(transport),
+                DeviceType::Network => virtio_network::init_pci(transport),
                 _ => {
                     pr_info!("[PCIe] virtio device {:?} not wired yet", dev_type);
                 }
