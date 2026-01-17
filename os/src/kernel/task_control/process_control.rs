@@ -4,6 +4,7 @@
 //! 故此模块变得相对简单，主要负责适配传统的进程概念与内核任务之间的关系。
 
 use crate::{
+    arch::lib::sbi::shutdown,
     kernel::{
         SharedTask, TASK_MANAGER, TaskManagerTrait, TaskState, notify_parent, wake_up_with_block,
     },
@@ -21,6 +22,7 @@ pub fn exit_process(task: SharedTask, code: i32) {
     if !task.lock().is_process() {
         panic!("exit_process called on a non-process task");
     }
+    let is_init = { task.lock().pid == 1 };
     let (children, threads, init_task) = {
         let mut t = TASK_MANAGER.lock();
         t.exit_task(task.clone(), code);
@@ -48,7 +50,11 @@ pub fn exit_process(task: SharedTask, code: i32) {
             t.exit_task(thread, 0);
         }
     }
-    notify_parent(task);
+    if is_init {
+        shutdown(false);
+    } else {
+        notify_parent(task);
+    }
 }
 
 /// 向进程发送信号
