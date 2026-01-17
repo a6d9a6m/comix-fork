@@ -164,7 +164,12 @@ fn init() {
     // - rcS 会执行 `mount -t tmpfs none /dev`
     // - 内核在 mount("/dev") 的系统调用中对该挂载点做了特殊处理，会在挂载 tmpfs 后自动 init_dev()
 
-    kernel_execve("/sbin/init", &["/sbin/init"], &[]);
+    const TEST_INIT: &str = "export PATH=/musl:/glibc; /musl/busybox mkdir -p /proc /sys /dev /tmp; /musl/busybox mount -t proc none /proc; /musl/busybox mount -t sysfs none /sys; /musl/busybox mount -t tmpfs none /dev; /musl/busybox mount -t tmpfs none /tmp; for d in /musl /glibc; do for f in $d/*_testcode.sh; do [ -f \"$f\" ] || continue; name=${f##*/}; (cd \"$d\" && ./busybox sh \"$name\"); done; done; /musl/busybox poweroff";
+    kernel_execve(
+        "/musl/busybox",
+        &["/musl/busybox", "sh", "-c", TEST_INIT],
+        &[],
+    );
 }
 
 /// 内核守护线程

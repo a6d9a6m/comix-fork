@@ -4,6 +4,7 @@ use crate::{
     device::{CMDLINE, irq::IntcDriver},
     kernel::{CLOCK_FREQ, NUM_CPU},
     memory::address::{ConvertablePaddr, Paddr, UsizeConvert},
+    memory::page_table::PagingError,
     pr_info, pr_warn,
     synchronization::RwLock,
 };
@@ -35,6 +36,26 @@ lazy_static::lazy_static! {
     /// 用于在设备树中查找和管理中断控制器
     pub static ref DEVICE_TREE_INTC: RwLock<BTreeMap<u32, Arc<dyn IntcDriver>>> =
         RwLock::new(BTreeMap::new());
+}
+
+const DTB_MAP_SIZE: usize = 0x20_0000; // 2MB, enough for typical DTB size
+
+fn ensure_dtb_mapped() {
+    let dtp = unsafe { DTP };
+    if dtp == 0 || dtp == 0x114514 {
+        pr_warn!("[Device] DTP not initialized; skip DTB mapping");
+        return;
+    }
+    let space = crate::kernel::current_memory_space();
+    match space.lock().map_mmio(Paddr::from_usize(dtp), DTB_MAP_SIZE) {
+        Ok(_) => {
+            pr_info!("[Device] DTB mapped at paddr={:#x}", dtp);
+        }
+        Err(PagingError::AlreadyMapped) => {}
+        Err(e) => {
+            pr_warn!("[Device] Failed to map DTB (paddr={:#x}): {:?}", dtp, e);
+        }
+    }
 }
 
 /// 早期初始化: 只解析 CPU 数量和时钟频率
@@ -72,6 +93,7 @@ pub fn early_init() {
 
 /// 初始化设备树
 pub fn init() {
+    ensure_dtb_mapped();
     let model = FDT
         .root()
         .property("model")

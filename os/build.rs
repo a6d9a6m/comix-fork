@@ -103,7 +103,11 @@ fn main() {
                 }
             }
         };
-        let fs_img_name = format!("fs-{}.img", arch_key);
+        let fs_img_name = if arch_key == "loongarch" {
+            "disk-la.img".to_string()
+        } else {
+            "disk.img".to_string()
+        };
         let fs_img_path = PathBuf::from(&manifest_dir).join(&fs_img_name);
         let data_dir = if arch_key == "loongarch" {
             project_root.join("data").join("loongarch_musl")
@@ -131,7 +135,8 @@ fn main() {
 
         if force_rebuild || should_rebuild(&fs_img_path, &dependencies) {
             println!(
-                "cargo:warning=[build.rs] Creating full ext4 runtime image (4GB) at fs.img..."
+                "cargo:warning=[build.rs] Creating full ext4 runtime image (4GB) at {}...",
+                fs_img_name
             );
             create_full_ext4_image(&fs_img_path, &data_dir, &project_root);
             let _ = fs::write(&arch_stamp, format!("{}\n", arch_key));

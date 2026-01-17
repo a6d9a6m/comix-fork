@@ -1,19 +1,33 @@
 #!/bin/bash
-# LoongArch64 QEMU 运行脚本（结构对齐 RISC-V 版本）
+set -euo pipefail
 
+# LoongArch64 QEMU 运行脚本（对齐评测启动方式）
 KERNEL=$1
 MODE=${2:-run}
 
 # 参数定义（对齐评测指令）
 mem="4G"
 smp="1"
-arch="${ARCH:-loongarch}"
-fs="fs-${arch}.img"
-disk="disk-la.img"
+root_dir="$(cd "$(dirname "$0")/.." && pwd)"
+fs_xz="${root_dir}/testsuits-for-oskernel/sdcard-la.img.xz"
+fs="${root_dir}/testsuits-for-oskernel/sdcard-la.img"
+disk="${root_dir}/disk-la.img"
 
-# 创建空磁盘镜像（如果不存在）
-if [ ! -f "$disk" ]; then
-    dd if=/dev/zero of="$disk" bs=1M count=32 2>/dev/null
+# 评测盘镜像（EXT4，无分区表）
+if [ ! -f "$fs" ]; then
+    if [ -f "$fs_xz" ]; then
+        if ! command -v xz >/dev/null 2>&1; then
+            echo "Error: xz not found; cannot decompress ${fs_xz}" >&2
+            exit 1
+        fi
+        echo "Decompressing ${fs_xz}..."
+        tmp_fs="${fs}.tmp"
+        xz -dc "$fs_xz" > "$tmp_fs"
+        mv "$tmp_fs" "$fs"
+    else
+        echo "Error: ${fs_xz} not found!" >&2
+        exit 1
+    fi
 fi
 
 QEMU_ARGS=(
@@ -25,19 +39,9 @@ QEMU_ARGS=(
     -no-reboot
 )
 
-# Virtio Block 设备 (fs.img)
-if [ -f "$fs" ]; then
-    QEMU_ARGS+=(-drive file="$fs",if=none,format=raw,id=x0)
-    QEMU_ARGS+=(-device virtio-blk-pci,drive=x0)
-elif [ -f "fs.img" ]; then
-    fs="fs.img"
-    QEMU_ARGS+=(-drive file="$fs",if=none,format=raw,id=x0)
-    QEMU_ARGS+=(-device virtio-blk-pci,drive=x0)
-else
-    echo "Error: ${fs} not found!"
-    echo "Please run 'cargo build' first to generate the filesystem image."
-    exit 1
-fi
+# Virtio Block 设备（评测盘）
+QEMU_ARGS+=(-drive file="$fs",if=none,format=raw,id=x0)
+QEMU_ARGS+=(-device virtio-blk-pci,drive=x0)
 
 # Virtio Network 设备
 QEMU_ARGS+=(-device virtio-net-pci,netdev=net0)
