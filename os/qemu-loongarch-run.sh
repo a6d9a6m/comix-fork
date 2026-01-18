@@ -9,8 +9,8 @@ MODE=${2:-run}
 mem="4G"
 smp="1"
 root_dir="$(cd "$(dirname "$0")/.." && pwd)"
-fs_xz="${root_dir}/testsuits-for-oskernel/sdcard-la.img.xz"
-fs="${root_dir}/testsuits-for-oskernel/sdcard-la.img"
+fs_xz="${root_dir}/sdcard-la.img.xz"
+fs="${root_dir}/sdcard-la.img"
 disk="${root_dir}/disk-la.img"
 
 # 评测盘镜像（EXT4，无分区表）

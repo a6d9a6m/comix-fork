@@ -8,8 +8,8 @@ os_file="$ELF_FILE"
 mem="4G"
 smp="${SMP:-1}"  # 从环境变量读取，默认为 1
 root_dir="$(cd "$(dirname "$0")/.." && pwd)"
-fs_xz="${root_dir}/testsuits-for-oskernel/sdcard-rv.img.xz"
-fs="${root_dir}/testsuits-for-oskernel/sdcard-rv.img"
+fs_xz="${root_dir}/sdcard-rv.img.xz"
+fs="${root_dir}/sdcard-rv.img"
 disk="${root_dir}/disk.img"
 
 # 评测盘镜像（EXT4，无分区表）
