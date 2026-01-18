@@ -226,7 +226,9 @@ fn handle_fioasync(_file: &alloc::sync::Arc<dyn crate::virtual_fs::File>, arg: u
 
 /// TIOCGPGRP - 获取终端前台进程组 ID
 fn handle_tiocgpgrp(
-    task: &alloc::sync::Arc<crate::synchronization::SpinLock<crate::kernel::task_control::TaskStruct>>,
+    task: &alloc::sync::Arc<
+        crate::synchronization::SpinLock<crate::kernel::task_control::TaskStruct>,
+    >,
     arg: usize,
 ) -> isize {
     if arg == 0 {
@@ -246,7 +248,9 @@ fn handle_tiocgpgrp(
 
 /// TIOCSPGRP - 设置终端前台进程组 ID
 fn handle_tiocspgrp(
-    task: &alloc::sync::Arc<crate::synchronization::SpinLock<crate::kernel::task_control::TaskStruct>>,
+    task: &alloc::sync::Arc<
+        crate::synchronization::SpinLock<crate::kernel::task_control::TaskStruct>,
+    >,
     arg: usize,
 ) -> isize {
     unsafe {
@@ -321,7 +325,11 @@ fn handle_siocgifconf(arg: usize) -> isize {
 }
 
 /// 处理网络接口请求（ifreq 结构）
-fn handle_ifreq(_file: &alloc::sync::Arc<dyn crate::virtual_fs::File>, request: u32, arg: usize) -> isize {
+fn handle_ifreq(
+    _file: &alloc::sync::Arc<dyn crate::virtual_fs::File>,
+    request: u32,
+    arg: usize,
+) -> isize {
     unsafe {
         let _guard = SumGuard::new();
         let ifreq_ptr = arg as *mut Ifreq;

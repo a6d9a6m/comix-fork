@@ -212,7 +212,10 @@ pub fn socket(domain: i32, socket_type: i32, _protocol: i32) -> isize {
 
     let task_lock = task.lock();
     let tid = task_lock.tid;
-    match task_lock.file_descriptor_table.alloc_with_flags(socket_file, fd_flags) {
+    match task_lock
+        .file_descriptor_table
+        .alloc_with_flags(socket_file, fd_flags)
+    {
         Ok(fd) => {
             register_socket_fd(task_lock.tid as usize, fd, handle);
             let handle_type = match handle {

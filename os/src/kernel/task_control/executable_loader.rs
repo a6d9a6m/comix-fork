@@ -511,7 +511,8 @@ pub fn prepare_exec_image_from_path(path: &str) -> Result<PreparedExecImage, Exe
     let mut at_base = 0usize;
 
     if let Some(interp_path) = interp {
-        let interp_dentry = crate::virtual_fs::vfs_lookup(&interp_path).map_err(ExecImageError::Fs)?;
+        let interp_dentry =
+            crate::virtual_fs::vfs_lookup(&interp_path).map_err(ExecImageError::Fs)?;
         let interp_inode = interp_dentry.inode.clone();
         let interp_meta = interp_inode.metadata().map_err(ExecImageError::Fs)?;
         if interp_meta.inode_type != InodeType::File {

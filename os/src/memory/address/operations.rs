@@ -84,8 +84,9 @@ macro_rules! impl_calc_ops {
         }
         impl core::ops::AddAssign<usize> for $type {
             fn add_assign(&mut self, rhs: usize) {
-                *self =
-                    $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() + rhs)
+                *self = $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() + rhs,
+                )
             }
         }
         impl core::ops::AddAssign<Self> for $type {
@@ -112,8 +113,9 @@ macro_rules! impl_calc_ops {
         }
         impl core::ops::SubAssign<usize> for $type {
             fn sub_assign(&mut self, rhs: usize) {
-                *self =
-                    $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() - rhs)
+                *self = $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() - rhs,
+                )
             }
         }
         impl core::ops::SubAssign<Self> for $type {
@@ -140,8 +142,9 @@ macro_rules! impl_calc_ops {
         }
         impl core::ops::BitAndAssign<usize> for $type {
             fn bitand_assign(&mut self, rhs: usize) {
-                *self =
-                    $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() & rhs)
+                *self = $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() & rhs,
+                )
             }
         }
         impl core::ops::BitAndAssign<Self> for $type {
@@ -168,8 +171,9 @@ macro_rules! impl_calc_ops {
         }
         impl core::ops::BitOrAssign<usize> for $type {
             fn bitor_assign(&mut self, rhs: usize) {
-                *self =
-                    $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() | rhs)
+                *self = $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() | rhs,
+                )
             }
         }
         impl core::ops::BitOrAssign<Self> for $type {
@@ -196,8 +200,9 @@ macro_rules! impl_calc_ops {
         }
         impl core::ops::BitXorAssign<usize> for $type {
             fn bitxor_assign(&mut self, rhs: usize) {
-                *self =
-                    $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() ^ rhs)
+                *self = $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() ^ rhs,
+                )
             }
         }
         impl core::ops::BitXorAssign<Self> for $type {
@@ -211,7 +216,9 @@ macro_rules! impl_calc_ops {
         impl core::ops::Shl<usize> for $type {
             type Output = Self;
             fn shl(self, rhs: usize) -> Self::Output {
-                $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() << rhs)
+                $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() << rhs,
+                )
             }
         }
         impl core::ops::ShlAssign<usize> for $type {
@@ -224,7 +231,9 @@ macro_rules! impl_calc_ops {
         impl core::ops::Shr<usize> for $type {
             type Output = Self;
             fn shr(self, rhs: usize) -> Self::Output {
-                $crate::memory::address::operations::UsizeConvert::from_usize(self.as_usize() >> rhs)
+                $crate::memory::address::operations::UsizeConvert::from_usize(
+                    self.as_usize() >> rhs,
+                )
             }
         }
         impl core::ops::ShrAssign<usize> for $type {

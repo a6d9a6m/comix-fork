@@ -182,7 +182,6 @@ pub fn dispatch_syscall(frame: &mut super::trap::TrapFrame) {
 
         // 扩展系统调用 (Extended/Legacy)
         // (send/recv 等已经通过更通用的接口实现，不需要单独分发)
-
         _ => {
             // 未知的系统调用
             frame.x10_a0 = (-(ENOSYS as isize)) as usize;

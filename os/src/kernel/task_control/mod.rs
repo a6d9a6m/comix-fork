@@ -9,25 +9,25 @@ mod credentials;
 mod executable_loader;
 mod fast_userspace_mutex;
 mod kernel_task;
+mod kernel_work_queue;
 mod process_control;
+mod task_control_block;
 mod task_registry;
 mod task_state;
-mod task_control_block;
 mod thread_id_allocator;
-mod kernel_work_queue;
 
 pub use capabilities::*;
 pub use credentials::*;
 pub use executable_loader::*;
 pub use fast_userspace_mutex::*;
 pub use kernel_task::*;
+pub use kernel_work_queue::*;
 pub use process_control::*;
-pub use task_registry::{TASK_MANAGER, TaskManagerTrait};
-pub use task_state::TaskState;
 pub use task_control_block::FsStruct;
 pub use task_control_block::SharedTask;
 pub use task_control_block::Task as TaskStruct;
-pub use kernel_work_queue::*;
+pub use task_registry::{TASK_MANAGER, TaskManagerTrait};
+pub use task_state::TaskState;
 
 use alloc::sync::Arc;
 

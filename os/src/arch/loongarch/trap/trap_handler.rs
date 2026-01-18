@@ -2,6 +2,7 @@
 
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+use crate::arch::constant::SUPERVISOR_EXTERNAL;
 use crate::arch::constant::{
     CSR_BADI, CSR_BADV, CSR_CRMD_PLV_MASK, CSR_EENTRY, CSR_ESTAT_IS_MASK, CSR_TLBRENT,
 };
@@ -10,11 +11,10 @@ use crate::arch::timer::{
     TIMER_TICKS, ack_timer_interrupt, clock_freq, get_time, set_next_trigger,
 };
 use crate::arch::trap::restore;
+use crate::device::IRQ_MANAGER;
 use crate::earlyprintln;
 use crate::interprocess::check_signal;
 use crate::kernel::{TIMER, TIMER_QUEUE, schedule, send_signal_process, wake_up_with_block};
-use crate::device::IRQ_MANAGER;
-use crate::arch::constant::SUPERVISOR_EXTERNAL;
 use crate::memory::address::{PageNum, UsizeConvert};
 use crate::memory::page_table::PageTableInner;
 
@@ -171,8 +171,7 @@ fn user_trap(estat: usize, era: usize, trap_frame: &mut TrapFrame) {
 
     // 优先处理中断
     if estat & CSR_ESTAT_IS_MASK != 0 {
-        if (estat & TIMER_INT_BIT) != 0 && !FIRST_USER_TIMER_LOGGED.swap(true, Ordering::Relaxed)
-        {
+        if (estat & TIMER_INT_BIT) != 0 && !FIRST_USER_TIMER_LOGGED.swap(true, Ordering::Relaxed) {
             crate::pr_debug!("[user_trap] first user timer interrupt, era={:#x}", era);
         }
         handle_interrupt(estat);
@@ -277,7 +276,9 @@ fn user_panic(estat: usize, era: usize, trap_frame: &TrapFrame) {
                 Ok((ppn, _, flags)) => {
                     earlyprintln!(
                         "pte  : vpn={:#x} -> ppn={:#x}, flags={:?}",
-                        vpn.0, ppn.0, flags
+                        vpn.0,
+                        ppn.0,
+                        flags
                     );
                 }
                 Err(e) => {
@@ -293,9 +294,7 @@ fn user_panic(estat: usize, era: usize, trap_frame: &TrapFrame) {
         // 断点 → SIGTRAP
         0xC => crate::user_api::signal::NUM_SIGTRAP,
         // 非法/特权/禁用指令 → SIGILL
-        0xD | 0xE | 0xF | 0x10 | 0x11 | 0x14 | 0x15 => {
-            crate::user_api::signal::NUM_SIGILL
-        }
+        0xD | 0xE | 0xF | 0x10 | 0x11 | 0x14 | 0x15 => crate::user_api::signal::NUM_SIGILL,
         // 浮点异常 → SIGFPE
         0x12 => crate::user_api::signal::NUM_SIGFPE,
         _ => {

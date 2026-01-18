@@ -34,7 +34,10 @@ use crate::device::virtio_hal::VirtIOHal;
 use crate::synchronization::SpinLock;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
-use virtio_drivers::{device::net::{TxBuffer, VirtIONet}, transport::Transport};
+use virtio_drivers::{
+    device::net::{TxBuffer, VirtIONet},
+    transport::Transport,
+};
 
 /// 使用 virtio-drivers 0.12.0 实现的 Virtio 网络设备
 pub struct VirtioNetDevice<T: Transport + Send + Sync> {

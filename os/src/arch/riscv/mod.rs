@@ -2,8 +2,8 @@
 pub mod boot;
 pub mod constant;
 pub mod info;
-pub mod interrupts;
 pub mod interprocessor_interrupt;
+pub mod interrupts;
 pub mod kernel;
 pub mod lib;
 pub mod memory;

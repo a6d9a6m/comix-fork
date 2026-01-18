@@ -19,8 +19,8 @@ use crate::{
         time::TimeSpec,
     },
     virtual_fs::{
-        DENTRY_CACHE, Dentry, FileMode, FsError, InodeType, OpenFlags, SeekWhence, Stat,
-        Statx, normalize_path, split_path, vfs_lookup,
+        DENTRY_CACHE, Dentry, FileMode, FsError, InodeType, OpenFlags, SeekWhence, Stat, Statx,
+        normalize_path, split_path, vfs_lookup,
     },
 };
 

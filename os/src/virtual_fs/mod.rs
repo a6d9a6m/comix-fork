@@ -153,8 +153,8 @@ pub mod dentry;
 pub mod dev;
 pub mod device_number;
 pub mod error;
-pub mod file_descriptor_table;
 pub mod file;
+pub mod file_descriptor_table;
 pub mod file_locking;
 pub mod filesystem;
 pub mod impls;
@@ -170,8 +170,8 @@ pub use dev::{major, makedev, minor};
 #[allow(unused_imports)]
 pub use device_number::{get_blkdev_index, get_chrdev_driver};
 pub use error::FsError;
-pub use file_descriptor_table::FDTable;
 pub use file::File;
+pub use file_descriptor_table::FDTable;
 pub use file_locking::file_lock_manager;
 pub use filesystem::{FileSystem, StatFs};
 #[allow(unused_imports)]

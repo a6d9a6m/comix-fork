@@ -32,7 +32,9 @@ use crate::{
             EAGAIN, EFAULT, EINTR, EINVAL, EIO, EISDIR, ENOENT, ENOEXEC, ENOMEM, ENOSYS, EPERM,
             ESRCH, ETIMEDOUT,
         },
-        fast_userspace_mutex::{FUTEX_CLOCK_REALTIME, FUTEX_PRIVATE, FUTEX_WAIT, FUTEX_WAKE, RobustListHead},
+        fast_userspace_mutex::{
+            FUTEX_CLOCK_REALTIME, FUTEX_PRIVATE, FUTEX_WAIT, FUTEX_WAKE, RobustListHead,
+        },
         resource::{RLIM_NLIMITS, Rlimit, Rusage},
         sched::CloneFlags,
         signal::{NUM_SIGALRM, NUM_SIGPROF, NUM_SIGVTALRM},
@@ -1251,8 +1253,12 @@ fn do_execve_prepare(
 > {
     let prepared = match crate::kernel::task_control::prepare_exec_image_from_path(path) {
         Ok(p) => p,
-        Err(crate::kernel::task_control::ExecImageError::Fs(FsError::NotFound)) => return Err(-ENOENT),
-        Err(crate::kernel::task_control::ExecImageError::Fs(FsError::IsDirectory)) => return Err(-EISDIR),
+        Err(crate::kernel::task_control::ExecImageError::Fs(FsError::NotFound)) => {
+            return Err(-ENOENT);
+        }
+        Err(crate::kernel::task_control::ExecImageError::Fs(FsError::IsDirectory)) => {
+            return Err(-EISDIR);
+        }
         Err(crate::kernel::task_control::ExecImageError::Fs(_)) => return Err(-EIO),
         Err(crate::kernel::task_control::ExecImageError::Paging(
             crate::memory::page_table::PagingError::OutOfMemory,

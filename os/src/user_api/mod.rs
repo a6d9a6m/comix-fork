@@ -5,9 +5,9 @@
 #![allow(dead_code)]
 pub mod credentials;
 pub mod errno;
+pub mod fast_userspace_mutex;
 pub mod file_control;
 pub mod filesystem;
-pub mod fast_userspace_mutex;
 pub mod io_control;
 pub mod iovec;
 pub mod logging;

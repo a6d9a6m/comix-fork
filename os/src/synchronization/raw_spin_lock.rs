@@ -103,7 +103,9 @@ impl Drop for RawSpinLockGuard<'_> {
 mod tests {
     use super::*;
     use crate::{
-        arch::interrupts::{are_interrupts_enabled, read_and_disable_interrupts, restore_interrupts},
+        arch::interrupts::{
+            are_interrupts_enabled, read_and_disable_interrupts, restore_interrupts,
+        },
         kassert, test_case,
     };
 

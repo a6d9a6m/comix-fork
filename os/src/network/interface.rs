@@ -442,7 +442,9 @@ impl crate::device::Driver for NetworkInterface {
         Some(self.device.as_ref())
     }
 
-    fn as_net_arc(self: Arc<Self>) -> Option<Arc<dyn crate::device::network::network_device::NetDevice>> {
+    fn as_net_arc(
+        self: Arc<Self>,
+    ) -> Option<Arc<dyn crate::device::network::network_device::NetDevice>> {
         Some(self.device.clone())
     }
 

@@ -3,7 +3,10 @@ use virtio_drivers::transport::{mmio::MmioTransport, pci::PciTransport};
 use crate::{
     device::{
         Driver,
-        network::{add_network_device, network_device::{NetDeviceError, VirtioNetDevice}},
+        network::{
+            add_network_device,
+            network_device::{NetDeviceError, VirtioNetDevice},
+        },
     },
     network::interface::NetworkInterface,
     pr_info, pr_warn,

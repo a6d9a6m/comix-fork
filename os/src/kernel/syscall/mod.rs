@@ -6,9 +6,9 @@
 mod credentials;
 mod file_control;
 mod filesystem;
-pub mod io_operations;
-mod io_control;
 mod interprocess;
+mod io_control;
+pub mod io_operations;
 mod memory;
 mod networking;
 mod signal;
@@ -21,8 +21,8 @@ use core::ffi::{c_char, c_int, c_uint, c_ulong, c_void};
 use crate::{
     impl_syscall,
     user_api::{
-        filesystem::LinuxStatFs,
         fast_userspace_mutex::RobustListHead,
+        filesystem::LinuxStatFs,
         iovec::IoVec,
         resource::{Rlimit, Rusage},
         signal::{SigInfoT, SignalAction},
@@ -36,9 +36,9 @@ use crate::{
 use credentials::*;
 use file_control::*;
 use filesystem::*;
-use io_operations::*;
-use io_control::*;
 use interprocess::*;
+use io_control::*;
+use io_operations::*;
 use memory::*;
 use networking::*;
 use signal::*;

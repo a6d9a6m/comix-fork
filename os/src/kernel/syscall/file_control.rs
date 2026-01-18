@@ -304,7 +304,11 @@ fn fcntl_dupfd(
     };
 
     // 使用 FDTable 的标准方法进行复制
-    let new_fd = match task.lock().file_descriptor_table.dup_from(old_fd, min_fd, flags) {
+    let new_fd = match task
+        .lock()
+        .file_descriptor_table
+        .dup_from(old_fd, min_fd, flags)
+    {
         Ok(fd) => {
             crate::pr_debug!(
                 "fcntl_dupfd: old_fd={} -> new_fd={}, min_fd={}, cloexec={}",

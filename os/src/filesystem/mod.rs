@@ -97,7 +97,6 @@ use crate::virtual_fs::{FileMode, FsError, MOUNT_TABLE, MountFlags, vfs_lookup};
 //     pub static ref ROOT_FS: SimpleMemoryFileSystem = SimpleMemoryFileSystem::init();
 // }
 
-
 /// 从真实的块设备初始化 Ext4 文件系统
 ///
 /// 尝试从第一个可用的块设备创建 Ext4 文件系统，并挂载为根文件系统
@@ -182,7 +181,10 @@ pub fn init_ext4_from_block_device() -> Result<(), crate::virtual_fs::FsError> {
 ///
 /// - `mount_point`: 挂载点路径（如 "/tmp"）
 /// - `max_size_mb`: 最大容量（MB），0 表示无限制
-pub fn mount_tmpfs(mount_point: &str, max_size_mb: usize) -> Result<(), crate::virtual_fs::FsError> {
+pub fn mount_tmpfs(
+    mount_point: &str,
+    max_size_mb: usize,
+) -> Result<(), crate::virtual_fs::FsError> {
     use alloc::string::ToString;
 
     pr_info!(

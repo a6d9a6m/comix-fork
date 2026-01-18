@@ -8,7 +8,9 @@ use crate::config::{
 use crate::memory::address::{Paddr, PageNum, Ppn, UsizeConvert, Vaddr, Vpn, VpnRange};
 use crate::memory::memory_space::MmapFile;
 use crate::memory::memory_space::mapping_area::{AreaType, MapType, MappingArea};
-use crate::memory::page_table::{ActivePageTableInner, PageTableInner, PagingError, UniversalPTEFlag};
+use crate::memory::page_table::{
+    ActivePageTableInner, PageTableInner, PagingError, UniversalPTEFlag,
+};
 use crate::synchronization::SpinLock;
 use crate::{pr_err, pr_warn};
 use alloc::vec::Vec;

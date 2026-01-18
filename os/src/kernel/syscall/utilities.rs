@@ -337,7 +337,11 @@ pub fn flush_block_device_by_fd(fd: usize) -> Result<(), isize> {
 
     // 1. 获取文件对象
     let task = current_task();
-    let file = task.lock().file_descriptor_table.get(fd).map_err(|e| e.to_errno())?;
+    let file = task
+        .lock()
+        .file_descriptor_table
+        .get(fd)
+        .map_err(|e| e.to_errno())?;
 
     // 2. 获取 dentry (如果不支持则说明是管道等特殊文件)
     let dentry = file.dentry().map_err(|e| e.to_errno())?;

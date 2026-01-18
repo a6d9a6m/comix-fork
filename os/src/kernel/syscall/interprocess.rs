@@ -28,7 +28,11 @@ pub fn dup3(oldfd: usize, newfd: usize, flags: u32) -> isize {
         return FsError::InvalidArgument.to_errno();
     }
 
-    match task.lock().file_descriptor_table.dup3(oldfd, newfd, open_flags) {
+    match task
+        .lock()
+        .file_descriptor_table
+        .dup3(oldfd, newfd, open_flags)
+    {
         Ok(newfd) => newfd as isize,
         Err(e) => e.to_errno(),
     }
@@ -53,13 +57,15 @@ pub fn pipe2(pipefd: *mut i32, flags: u32) -> isize {
     let file_descriptor_table = current_task().lock().file_descriptor_table.clone();
 
     // 分配文件描述符
-    let read_fd =
-        match file_descriptor_table.alloc_with_flags(Arc::new(pipe_read) as Arc<dyn File>, fd_flags.clone()) {
-            Ok(fd) => fd,
-            Err(e) => return e.to_errno(),
-        };
+    let read_fd = match file_descriptor_table
+        .alloc_with_flags(Arc::new(pipe_read) as Arc<dyn File>, fd_flags.clone())
+    {
+        Ok(fd) => fd,
+        Err(e) => return e.to_errno(),
+    };
 
-    let write_fd = match file_descriptor_table.alloc_with_flags(Arc::new(pipe_write) as Arc<dyn File>, fd_flags)
+    let write_fd = match file_descriptor_table
+        .alloc_with_flags(Arc::new(pipe_write) as Arc<dyn File>, fd_flags)
     {
         Ok(fd) => fd,
         Err(e) => {
