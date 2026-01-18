@@ -188,6 +188,11 @@ impl MemorySpace {
         Ok(())
     }
 
+    /// 确保用户态 rt_sigreturn trampoline 已映射（幂等）。
+    pub fn ensure_user_sigreturn_trampoline(&mut self) -> Result<(), PagingError> {
+        self.map_user_sigreturn_trampoline()
+    }
+
     /// 从当前地址空间中向指定虚拟地址写入字节序列（跨页安全）。
     pub fn write_bytes_at(&mut self, va: usize, bytes: &[u8]) -> Result<(), PagingError> {
         if bytes.is_empty() {

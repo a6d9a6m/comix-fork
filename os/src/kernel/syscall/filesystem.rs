@@ -20,7 +20,7 @@ use crate::{
     },
     virtual_fs::{
         DENTRY_CACHE, Dentry, FileMode, FsError, InodeType, OpenFlags, SeekWhence, Stat,
-        Statx, split_path, vfs_lookup,
+        Statx, normalize_path, split_path, vfs_lookup,
     },
 };
 
@@ -196,9 +196,13 @@ pub fn mkdirat(dirfd: i32, pathname: *const c_char, mode: u32) -> isize {
             return FsError::InvalidArgument.to_errno();
         }
     };
+    let normalized = normalize_path(&path_str);
+    if normalized == "/" {
+        return FsError::AlreadyExists.to_errno();
+    }
 
     // 分割路径为目录和文件名
-    let (dir_path, dirname) = match split_path(&path_str) {
+    let (dir_path, dirname) = match split_path(&normalized) {
         Ok(p) => p,
         Err(e) => return e.to_errno(),
     };

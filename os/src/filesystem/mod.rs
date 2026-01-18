@@ -147,6 +147,19 @@ pub fn init_ext4_from_block_device() -> Result<(), crate::virtual_fs::FsError> {
 
     pr_info!("[Ext4] Root filesystem mounted at /");
 
+    // 确保当前任务拥有可用的 root/cwd，避免 getcwd/相对路径返回 NotSupported。
+    if let Ok(root_dentry) = crate::virtual_fs::get_root_dentry() {
+        let task = crate::kernel::current_task();
+        let mut task_guard = task.lock();
+        let mut fs = task_guard.fs.lock();
+        if fs.root.is_none() {
+            fs.root = Some(root_dentry.clone());
+        }
+        if fs.cwd.is_none() {
+            fs.cwd = Some(root_dentry);
+        }
+    }
+
     // 5. 列出根目录内容（调试用）
     if let Ok(root_dentry) = crate::virtual_fs::get_root_dentry() {
         pr_info!("[Ext4] Root directory contents:");

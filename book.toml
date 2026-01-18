@@ -1,10 +1,10 @@
 [book]
-authors = ["Comix Team"]
+authors = ["CCYOS Team"]
 language = "zh-CN"
 multilingual = false
 src = "document"
-title = "Comix 内核文档"
-description = "Comix 是一个用 Rust 编写的类 Unix 内核，用于教育目的"
+title = "CCYOS 内核文档"
+description = "CCYOS 是一个用 Rust 编写的类 Unix 内核，用于教育目的"
 
 [output.html]
 default-theme = "rust"

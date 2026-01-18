@@ -211,6 +211,11 @@ fn install_user_signal_trap_frame(
         let restorer = if sa_flags.contains(SaFlags::RESTORER) && !action.sa_restorer.is_null() {
             action.sa_restorer as usize
         } else {
+            if let Some(space) = t.memory_space.as_ref() {
+                if let Err(e) = space.lock().ensure_user_sigreturn_trampoline() {
+                    pr_err!("[signal] ensure sigreturn trampoline failed: {:?}", e);
+                }
+            }
             sigreturn_trampoline_address()
         };
         tf.set_ra(restorer);
