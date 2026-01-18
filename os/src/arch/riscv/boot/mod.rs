@@ -311,14 +311,14 @@ mod tests {
     use super::*;
     use crate::{kassert, test_case};
 
-    /// 测试 NUM_CPU 设置正确
+    // 测试 NUM_CPU 设置正确
     test_case!(test_num_cpu, {
         let num_cpu = unsafe { crate::kernel::NUM_CPU };
         kassert!(num_cpu >= 1);
         kassert!(num_cpu <= crate::config::MAX_CPU_COUNT);
     });
 
-    /// 测试 CPU 上线掩码（多核环境）
+    // 测试 CPU 上线掩码（多核环境）
     test_case!(test_cpu_online_mask, {
         use core::sync::atomic::Ordering;
 

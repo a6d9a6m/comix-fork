@@ -48,6 +48,7 @@ const ACPI_GED_VALUE_REBOOT: u8 = 0x42; // reboot { value = <0x42> }
 
 /// 关机实现
 pub fn shutdown(_failure: bool) -> ! {
+    crate::pr_info!("[SBI] shutdown requested");
     // 映射到 LoongArch 的虚地址 (DMW0: 0x8000...)
     let base_vaddr = VIRT_GED_REG_ADDR | 0x8000_0000_0000_0000;
 

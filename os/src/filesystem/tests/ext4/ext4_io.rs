@@ -2,7 +2,6 @@ use super::*;
 use crate::virtual_fs::filesystem::FileSystem;
 use crate::{kassert, test_case};
 use alloc::vec;
-use alloc::vec::Vec;
 
 // P1 重要功能测试
 

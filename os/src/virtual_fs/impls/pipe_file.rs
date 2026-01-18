@@ -195,8 +195,12 @@ impl File for PipeFile {
     }
 
     fn read(&self, buf: &mut [u8]) -> Result<usize, FsError> {
-        if !self.readable() {
+        if self.end_type != PipeEnd::Read {
             return Err(FsError::InvalidArgument);
+        }
+
+        if buf.is_empty() {
+            return Ok(0);
         }
 
         let mut ring_buf = self.buffer.lock();

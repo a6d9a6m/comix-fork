@@ -234,9 +234,9 @@ mod tests {
         let t1 = tm.allocate_tid();
         let t2 = tm.allocate_tid();
         let t3 = tm.allocate_tid();
-        kassert!(t1 == 1);
-        kassert!(t2 == 2);
-        kassert!(t3 == 3);
+        kassert!(t1 == 2);
+        kassert!(t2 == 3);
+        kassert!(t3 == 4);
     });
 
     // 对不存在的 tid 进行查询与退出

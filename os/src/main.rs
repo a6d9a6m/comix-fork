@@ -1,6 +1,6 @@
-//! ComixOS - A RISC-V operating system kernel
+//! CCYOS - A RISC-V operating system kernel
 //!
-//! This is the main crate for ComixOS, an operating system kernel written in Rust
+//! This is the main crate for CCYOS, an operating system kernel written in Rust
 //! for RISC-V architecture. It provides basic OS functionalities including memory
 //! management, process scheduling, and system call handling.
 

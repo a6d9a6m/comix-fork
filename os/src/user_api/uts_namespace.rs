@@ -28,7 +28,7 @@ impl Default for UtsNamespace {
     /// 创建一个默认的 UTS 命名空间实例
     ///
     /// 默认值为：
-    /// - sysname: "ComixOS"
+    /// - sysname: "CCYOS"
     /// - nodename: "localhost"
     /// - release: "0.1.0"
     /// - version: "Version 0.1.0"
@@ -50,7 +50,7 @@ impl Default for UtsNamespace {
             },
             sysname: {
                 let mut buf = [0u8; 65];
-                let bytes = "ComixOS".as_bytes();
+                let bytes = "CCYOS".as_bytes();
                 buf[..bytes.len()].copy_from_slice(bytes);
                 buf
             },

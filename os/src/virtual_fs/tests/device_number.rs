@@ -1,7 +1,7 @@
 //! 设备号管理测试
 
 use super::*;
-use crate::virtual_fs::{dev::*, device_number::*};
+use crate::virtual_fs::device_number::*;
 use crate::{kassert, test_case};
 
 test_case!(test_makedev_major_minor, {

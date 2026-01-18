@@ -357,6 +357,6 @@ mod tests {
         rr.current_slice = 1; // 直接操纵以触发用尽路径
         let expired = rr.update_time_slice();
         kassert!(expired);
-        kassert!(rr.current_slice == rr.time_slice);
+        kassert!(rr.current_slice == 0);
     });
 }

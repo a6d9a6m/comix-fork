@@ -56,15 +56,28 @@ use crate::{
 /// 对于重启或关机操作，函数不会返回
 pub fn reboot(magic: c_int, magic2: c_int, op: c_int, _arg: *mut c_void) -> c_int {
     // TODO: 支持更多重启操作码
-    if magic as u32 != REBOOT_MAGIC1 {
-        return -EINVAL;
-    }
-    if magic2 as u32 != REBOOT_MAGIC2
-        && magic2 as u32 != REBOOT_MAGIC2A
-        && magic2 as u32 != REBOOT_MAGIC2B
-        && magic2 as u32 != REBOOT_MAGIC2C
-    {
-        return -EINVAL;
+    crate::pr_info!(
+        "[reboot] magic={:#x}, magic2={:#x}, op={:#x}",
+        magic as u32,
+        magic2 as u32,
+        op as u32
+    );
+    let magic_ok = (magic as u32) == REBOOT_MAGIC1;
+    let magic2_ok = (magic2 as u32) == REBOOT_MAGIC2
+        || (magic2 as u32) == REBOOT_MAGIC2A
+        || (magic2 as u32) == REBOOT_MAGIC2B
+        || (magic2 as u32) == REBOOT_MAGIC2C;
+    // 兼容部分用户态实现：若 magic 未设置但 op 为关机/重启，允许继续
+    if !(magic_ok && magic2_ok) {
+        let op_u32 = op as u32;
+        let magic_missing = magic == 0 && magic2 == 0;
+        if !(magic_missing
+            && (op_u32 == REBOOT_CMD_POWER_OFF
+                || op_u32 == REBOOT_CMD_RESTART
+                || op_u32 == REBOOT_CMD_HALT))
+        {
+            return -EINVAL;
+        }
     }
     match op as u32 {
         REBOOT_CMD_POWER_OFF | REBOOT_CMD_RESTART | REBOOT_CMD_HALT => {
@@ -438,15 +451,15 @@ pub fn syslog(type_: i32, bufp: *mut u8, len: i32) -> isize {
             //   console_loglevel = N 表示显示 level < N 的消息
             //   范围：1-8
             //
-            // comix 的 log 模块语义：
+            // CCYOS 的 log 模块语义：
             //   console_level = N 表示显示 level <= N 的消息
             //   范围：0-7
             //
             // 转换关系：
             //   Linux len=1 -> 只显示 level < 1 (即 EMERG(0))
-            //              -> comix 的 console_level = 0 (Emergency)
+            //              -> CCYOS 的 console_level = 0 (Emergency)
             //   Linux len=8 -> 显示 level < 8 (即 0-7 全部)
-            //              -> comix 的 console_level = 7 (Debug)
+            //              -> CCYOS 的 console_level = 7 (Debug)
             //
             // 公式：console_level_u8 = len - 1
 

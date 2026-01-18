@@ -9,6 +9,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+macro_rules! log_info {
+    ($($arg:tt)*) => {
+        println!("[build.rs] {}", format!($($arg)*));
+    };
+}
+
 fn main() {
     // 获取环境变量
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");
@@ -22,7 +28,7 @@ fn main() {
 
     // 步骤 1: 编译用户程序
     if user_dir.exists() {
-        println!("cargo:warning=[build.rs] Building user programs...");
+        log_info!("Building user programs...");
         let status = Command::new("make")
             .current_dir(&user_dir)
             .env("BUILD_MODE", "release")
@@ -35,7 +41,7 @@ fn main() {
 
         match status {
             Ok(s) if s.success() => {
-                println!("cargo:warning=[build.rs] User programs built successfully");
+                log_info!("User programs built successfully");
             }
             Ok(s) => {
                 panic!(
@@ -51,7 +57,7 @@ fn main() {
             }
         }
     } else {
-        println!("cargo:warning=[build.rs] User directory not found, skipping user build");
+        log_info!("User directory not found, skipping user build");
     }
 
     // 步骤 3: 创建 ext4 镜像
@@ -67,7 +73,7 @@ fn main() {
     if is_test {
         // 测试模式: 创建 8MB 镜像用于测试
         // 只有在测试模式下才需要这个环境变量
-        println!("cargo:warning=[build.rs] Creating ext4 test image for embedding (8MB)...");
+        log_info!("Creating ext4 test image for embedding (8MB)...");
         create_ext4_test_image(&ext4_embed_img);
         println!("cargo:rustc-env=EXT4_FS_IMAGE={}", ext4_embed_img.display());
     } else {
@@ -78,9 +84,7 @@ fn main() {
         if !dummy_img.exists() {
             let _ = fs::write(&dummy_img, &[]);
         }
-        println!(
-            "cargo:warning=[build.rs] Skipping real test image creation (using dummy for IDE)"
-        );
+        log_info!("Skipping real test image creation (using dummy for IDE)");
         println!("cargo:rustc-env=EXT4_FS_IMAGE={}", dummy_img.display());
     }
 
@@ -127,28 +131,19 @@ fn main() {
             Err(_) => true,
         };
         if force_rebuild {
-            println!(
-                "cargo:warning=[build.rs] Arch changed ({}), forcing fs.img rebuild.",
-                arch_key
-            );
+            log_info!("Arch changed ({}), forcing fs.img rebuild.", arch_key);
         }
 
         if force_rebuild || should_rebuild(&fs_img_path, &dependencies) {
-            println!(
-                "cargo:warning=[build.rs] Creating full ext4 runtime image (4GB) at {}...",
+            log_info!(
+                "Creating full ext4 runtime image (4GB) at {}...",
                 fs_img_name
             );
             create_full_ext4_image(&fs_img_path, &data_dir, &project_root);
             let _ = fs::write(&arch_stamp, format!("{}\n", arch_key));
-            println!(
-                "cargo:warning=[build.rs] Runtime image created: {}",
-                fs_img_path.display()
-            );
+            log_info!("Runtime image created: {}", fs_img_path.display());
         } else {
-            println!(
-                "cargo:warning=[build.rs] {} is up to date, skipping regeneration.",
-                fs_img_name
-            );
+            log_info!("{} is up to date, skipping regeneration.", fs_img_name);
         }
     }
 }
@@ -229,11 +224,7 @@ fn create_minimal_ext4_image(path: &PathBuf) {
 fn create_empty_ext4_image(path: &PathBuf, size_mb: usize) {
     const BLOCK_SIZE: usize = 1024 * 1024;
 
-    println!(
-        "cargo:warning=[build.rs] Creating {}MB ext4 image at {}",
-        size_mb,
-        path.display()
-    );
+    log_info!("Creating {}MB ext4 image at {}", size_mb, path.display());
 
     // 1. 创建空文件 (dd)
     let dd_status = Command::new("dd")
@@ -279,9 +270,10 @@ fn create_empty_ext4_image(path: &PathBuf, size_mb: usize) {
 
     if mkfs_status.success() {
         let block_groups = if size_mb >= 8 { " (multi-group)" } else { "" };
-        println!(
-            "cargo:warning=[build.rs] Ext4 image formatted successfully ({}MB{}).",
-            size_mb, block_groups
+        log_info!(
+            "Ext4 image formatted successfully ({}MB{}).",
+            size_mb,
+            block_groups
         );
     } else {
         panic!("Failed to format ext4 image! Make sure 'mkfs.ext4' is installed.");
@@ -293,14 +285,14 @@ fn create_full_ext4_image(path: &PathBuf, data_dir: &Path, project_root: &Path) 
     const IMG_SIZE_MB: usize = 4096; // 4GB
     const BLOCK_SIZE: usize = 1024 * 1024;
 
-    println!(
-        "cargo:warning=[build.rs] Creating {}MB (4GB) full ext4 image at {}",
+    log_info!(
+        "Creating {}MB (4GB) full ext4 image at {}",
         IMG_SIZE_MB,
         path.display()
     );
 
     // 1. 创建临时目录用于组织文件系统内容
-    let temp_root = std::env::temp_dir().join("comix_fs_content");
+    let temp_root = std::env::temp_dir().join("ccyos_fs_content");
     if temp_root.exists() {
         fs::remove_dir_all(&temp_root).ok();
     }
@@ -310,10 +302,7 @@ fn create_full_ext4_image(path: &PathBuf, data_dir: &Path, project_root: &Path) 
     if data_dir.exists() {
         copy_dir_recursive(&data_dir.to_path_buf(), &temp_root)
             .expect("Failed to copy data directory");
-        println!(
-            "cargo:warning=[build.rs] Copied {} to temp root",
-            data_dir.display()
-        );
+        log_info!("Copied {} to temp root", data_dir.display());
     }
 
     // 3. 创建 /home/user/bin 目录并复制 user/bin
@@ -323,7 +312,7 @@ fn create_full_ext4_image(path: &PathBuf, data_dir: &Path, project_root: &Path) 
     let user_bin_src = project_root.join("user").join("bin");
     if user_bin_src.exists() {
         copy_dir_recursive(&user_bin_src, &home_user_bin).expect("Failed to copy user/bin");
-        println!("cargo:warning=[build.rs] Copied user/bin to /home/user/bin");
+        log_info!("Copied user/bin to /home/user/bin");
     }
 
     // 4. 创建空镜像
@@ -363,7 +352,7 @@ fn create_full_ext4_image(path: &PathBuf, data_dir: &Path, project_root: &Path) 
     // 6. 清理临时目录
     fs::remove_dir_all(&temp_root).ok();
 
-    println!("cargo:warning=[build.rs] Full ext4 image created successfully (1GB).");
+    log_info!("Full ext4 image created successfully (1GB).");
 }
 
 /// 递归复制目录

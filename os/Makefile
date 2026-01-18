@@ -47,11 +47,7 @@ else
 endif
 endif
 
-# 目标 2: test (显式运行测试)
-test:
-	@cargo test --target $(TARGET)
-
-.PHONY: run test debug gdb qemu-gdb-target help
+.PHONY: run debug gdb qemu-gdb-target help
 
 # 目标 3: qemu-gdb-target (启动 QEMU 等待 GDB)
 # 在后台启动 QEMU 并等待连接，使用 'gdb' 模式
@@ -149,7 +145,7 @@ clean-test:
 # 帮助信息
 # ===============================================
 help:
-	@echo "ComixOS Makefile (os/)"
+	@echo "CCYOS Makefile (os/)"
 	@echo ""
 	@echo "Usage: make [target] ARCH=[riscv|loongarch]"
 	@echo ""

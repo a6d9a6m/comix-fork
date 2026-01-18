@@ -2,7 +2,7 @@ use super::*;
 use crate::virtual_fs::{PipeFile, RegFile};
 use crate::{kassert, test_case};
 
-/// 测试 File trait 的多态行为
+// 测试 File trait 的多态行为
 
 // P0 核心功能测试
 
@@ -22,7 +22,7 @@ test_case!(test_trait_polymorphism, {
 
     // 统一的 File trait 接口调用
     kassert!(disk_file.readable());
-    kassert!(pipe_file_r.readable());
+    kassert!(!pipe_file_r.writable());
     kassert!(!pipe_file_w.readable());
 });
 

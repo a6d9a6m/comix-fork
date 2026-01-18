@@ -698,14 +698,14 @@ mod page_table_tests {
 
     // TLB Shootdown 测试
 
-    /// 测试 TLB flush IPI 发送（基础功能）
+    // 测试 TLB flush IPI 发送（基础功能）
     test_case!(test_tlb_flush_ipi_basic, {
         // 调用 send_tlb_flush_ipi_all 不应该 panic
         crate::arch::interprocessor_interrupt::send_tlb_flush_ipi_all();
         kassert!(true);
     });
 
-    /// 测试页表映射触发 TLB shootdown
+    // 测试页表映射触发 TLB shootdown
     test_case!(test_page_table_map_with_tlb_flush, {
         let mut pt = PageTableInner::new();
         let vpn = Vpn::from_usize(0x10000);
@@ -720,7 +720,7 @@ mod page_table_tests {
         kassert!(translated.is_some());
     });
 
-    /// 测试页表解除映射触发 TLB shootdown
+    // 测试页表解除映射触发 TLB shootdown
     test_case!(test_page_table_unmap_with_tlb_flush, {
         let mut pt = PageTableInner::new();
         let vpn = Vpn::from_usize(0x20000);
@@ -739,7 +739,7 @@ mod page_table_tests {
         kassert!(translated.is_none());
     });
 
-    /// 测试页表权限更新触发 TLB shootdown
+    // 测试页表权限更新触发 TLB shootdown
     test_case!(test_page_table_update_flags_with_tlb_flush, {
         let mut pt = PageTableInner::new();
         let vpn = Vpn::from_usize(0x30000);

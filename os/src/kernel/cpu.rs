@@ -123,7 +123,7 @@ mod tests {
     use super::*;
     use crate::{kassert, test_case};
 
-    /// 测试 CPUS 初始化
+    // 测试 CPUS 初始化
     test_case!(test_cpus_initialization, {
         let num_cpu = unsafe { NUM_CPU };
         for cpu_id in 0..num_cpu {
@@ -132,7 +132,7 @@ mod tests {
         }
     });
 
-    /// 测试 cpu_id() 函数
+    // 测试 cpu_id() 函数
     test_case!(test_cpu_id, {
         use crate::arch::kernel::cpu::cpu_id;
         use crate::synchronization::PreemptGuard;
@@ -142,7 +142,7 @@ mod tests {
         kassert!(id < unsafe { NUM_CPU });
     });
 
-    /// 测试 current_cpu() 函数
+    // 测试 current_cpu() 函数
     test_case!(test_current_cpu, {
         use crate::synchronization::PreemptGuard;
 
@@ -151,7 +151,7 @@ mod tests {
         kassert!(cpu.cpu_id < unsafe { NUM_CPU });
     });
 
-    /// 测试 cpu_of() 函数
+    // 测试 cpu_of() 函数
     test_case!(test_cpu_of, {
         let cpu0 = cpu_of(0);
         kassert!(cpu0.cpu_id == 0);
@@ -163,7 +163,7 @@ mod tests {
         }
     });
 
-    /// 测试 PerCpu 数据独立性（多核场景）
+    // 测试 PerCpu 数据独立性（多核场景）
     test_case!(test_per_cpu_independence, {
         use crate::synchronization::{PerCpu, PreemptGuard};
         use core::sync::atomic::{AtomicUsize, Ordering};
@@ -199,7 +199,7 @@ mod tests {
         }
     });
 
-    /// 测试 PerCpu 的 new_with_id 初始化
+    // 测试 PerCpu 的 new_with_id 初始化
     test_case!(test_per_cpu_with_id, {
         use crate::synchronization::PerCpu;
 

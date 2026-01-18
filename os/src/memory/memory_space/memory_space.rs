@@ -1534,8 +1534,6 @@ mod memory_space_tests {
 
     // 6. 测试 MMIO 地址翻译 - 使用独立的 MemorySpace 实例
     test_case!(test_mmio_translation, {
-        use crate::arch::memory::paddr_to_vaddr;
-
         // 使用独立的 MemorySpace 实例，避免与其他测试或全局状态冲突
         let mut ms = MemorySpace::new();
 
@@ -1903,9 +1901,7 @@ mod memory_space_tests {
     // 16. 测试 mmap 文件映射基本功能
     test_case!(test_mmap_file_basic, {
         use crate::filesystem::tmpfs::TmpFs;
-        use crate::user_api::memory::{MapFlags, ProtFlags};
-        use crate::virtual_fs::{File, FileMode, FileSystem};
-        use alloc::sync::Arc;
+        use crate::virtual_fs::{FileMode, FileSystem};
 
         println!("Testing mmap file mapping basic functionality");
 

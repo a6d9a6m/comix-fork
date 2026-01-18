@@ -48,8 +48,8 @@ pub fn create_test_file(name: &str, inode: Arc<dyn Inode>, flags: OpenFlags) -> 
     Arc::new(RegFile::new(dentry, flags))
 }
 
-pub mod block_device_file;
-pub mod char_device_file;
+pub mod blk_dev_file;
+pub mod char_dev_file;
 pub mod dentry;
 pub mod device_number;
 pub mod file_descriptor_table;

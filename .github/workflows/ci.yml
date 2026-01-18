@@ -1,4 +1,4 @@
-name: Run tests & Code Quality Checks
+name: CI
 
 on:
   push:
@@ -13,35 +13,27 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN: nightly-2025-10-28
-  
   QEMU_VERSION: qemu-9.2.1
   QEMU_BUILD_PATH: ${{ github.workspace }}/qemu-build-cache
 
 jobs:
-  run-tests:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
 
-      # --- 1. 缓存 Cargo 依赖项 (使用 Swatinem/rust-cache) ---
-      # ⚠️ 替换了原有的 actions/cache@v4，更高效地管理 Cargo 缓存
       - name: 📦 Setup Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
-          # 仅需传递 key 相关的变量，该 Action 会自动处理路径
           key: ${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('**/Cargo.lock') }}
 
-      # --- 2. 安装 Rust Toolchain 和 Target ---
       - name: 🛠️ Setup Rust Toolchain and Target
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: riscv64gc-unknown-none-elf
-          # 确保安装了 rustfmt 和 clippy
-          components: rust-src, rustfmt, clippy, llvm-tools-preview
-      
-      # --- 2.1 代码质量检查 (优先执行) ---
+          components: rust-src, rustfmt, clippy
 
       - name: 🔍 Cargo Check (快速验证编译)
         working-directory: os
@@ -49,20 +41,33 @@ jobs:
 
       - name: 📏 Run Code Formatting Check
         working-directory: os
-        # 使用 --check 模式，如果代码未格式化，则 CI 失败
         run: cargo fmt --all -- --check
 
       - name: 🔬 Run Clippy Lint Check
         working-directory: os
-        # 不需要强制 warning，在 Cargo.toml 中已将大部分有问题的东西配置为 deny
         run: cargo clippy --target riscv64gc-unknown-none-elf
-        
-      # --- 2.2 安装辅助工具 ---
+
+  test-riscv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: 🛠️ Setup Rust Toolchain and Target
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: riscv64gc-unknown-none-elf
+          components: rust-src, llvm-tools-preview
 
       - name: Install cargo-binutils
         run: cargo install cargo-binutils
 
-      # --- 2.5 缓存 Apt 包 (优化 QEMU 依赖安装时间) ---
       - name: 📦 Cache APT Dependencies
         uses: actions/cache@v4
         with:
@@ -72,8 +77,7 @@ jobs:
           key: ${{ runner.os }}-apt-qemu-deps-v1
           restore-keys: |
             ${{ runner.os }}-apt-qemu-deps-
-            
-      # --- 3. QEMU 编译和缓存 ---
+
       - name: 🧱 Install QEMU Dependencies
         run: |
           sudo apt-get update
@@ -97,21 +101,42 @@ jobs:
         run: |
           wget https://download.qemu.org/${{ env.QEMU_VERSION }}.tar.xz
           tar -xf ${{ env.QEMU_VERSION }}.tar.xz
-          
+
           mkdir -p ${{ env.QEMU_BUILD_PATH }}
-          
+
           cd ${{ env.QEMU_VERSION }}
-          # 配置 QEMU 目标列表
           ./configure --target-list=riscv64-softmmu --prefix=${{ env.QEMU_BUILD_PATH }} --disable-sdl
           make -j$(nproc)
           make install
-          
+
           echo "${{ env.QEMU_BUILD_PATH }}/bin" >> $GITHUB_PATH
 
       - name: ➕ Add QEMU to PATH
         if: steps.qemu-cache.outputs.cache-hit == 'true'
         run: echo "${{ env.QEMU_BUILD_PATH }}/bin" >> $GITHUB_PATH
 
-      - name: 🏃 Run usertests
-        run: cd os && make run TEST=1
+      - name: 🏃 Run kernel tests (QEMU)
+        run: cd os && make test ARCH=riscv
         timeout-minutes: 10
+
+  build-loongarch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: 🛠️ Setup Rust Toolchain and Target
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: loongarch64-unknown-none
+          components: rust-src
+
+      - name: 🔍 Cargo Check (LoongArch)
+        working-directory: os
+        run: cargo check --target loongarch64-unknown-none

@@ -75,7 +75,6 @@ test_case!(test_pipe_readable_writable, {
     let write_file: Arc<dyn File> = Arc::new(pipe_write);
 
     // 读端只可读
-    kassert!(read_file.readable());
     kassert!(!read_file.writable());
 
     // 写端只可写

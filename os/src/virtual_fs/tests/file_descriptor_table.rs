@@ -20,8 +20,7 @@ test_case!(test_fdtable_alloc, {
     let file = create_test_file("test.txt", inode, OpenFlags::O_RDONLY);
 
     // 分配 FD
-    let fd = file_descriptor_table.alloc(file).unwrap();
-    kassert!(fd >= 0);
+    let _fd = file_descriptor_table.alloc(file).unwrap();
 });
 
 test_case!(test_fdtable_get, {

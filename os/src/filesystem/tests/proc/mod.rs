@@ -1,5 +1,5 @@
 use crate::filesystem::proc::ProcFS;
-use crate::virtual_fs::{FileMode, FileSystem, FsError, Inode, InodeType};
+use crate::virtual_fs::{FileMode, FileSystem, FsError, InodeType};
 use alloc::sync::Arc;
 
 // Test helper functions
